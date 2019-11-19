@@ -5,4 +5,4 @@ dataset_dir = '/home/filip/Projekty/ML/datasets/processed/mindboggle_84_coronal_
 train_loader = get_loader(dataset_dir, 'train')
 
 my_model = MyModel(train_loader = train_loader)
-my_model.train()
+my_model.start_train()

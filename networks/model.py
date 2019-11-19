@@ -1,7 +1,6 @@
 import numpy as np
 
 import tensorflow as tf
-from tensorflow.keras.losses import binary_crossentropy
 
 from networks import network
 from networks import loss
@@ -10,20 +9,20 @@ from networks import optimizer
 @tf.function
 def compute_loss(logits, labels):
     return tf.reduce_mean(
-        tf.nn.sparse_softmax_cross_entropy_with_logits(
+        tf.nn.sigmoid_cross_entropy_with_logits(
             logits=logits, labels=labels))
 
-# @tf.function
+@tf.function
 def compute_accuracy(logits, labels):
     predictions = tf.nn.softmax(logits)
     return tf.reduce_mean(tf.cast(tf.equal(predictions, labels), tf.float32))
 
-# @tf.function
-def train_one_step(model, optimizer, x, y):
+@tf.function
+def train_one_batch(model, optimizer, x, y):
 
     with tf.GradientTape() as tape:
         logits = model(x)
-        loss = binary_crossentropy(logits, y)
+        loss = compute_loss(logits, y)
 
     # compute gradient
     grads = tape.gradient(loss, model.trainable_variables)
@@ -71,14 +70,20 @@ class MyModel():
         if test_loader:
             self.test_dataset = tf.data.Dataset.from_generator(test_loader, (tf.float32, tf.float32))
 
-    def train(self):
+    def start_train(self):
         self.model.summary()
 
+        for epoch in range(self.epochs):
+            loss, accuracy = self.train(epoch)
+            print('Final epoch', epoch, ': loss', loss.numpy(), '; accuracy', accuracy.numpy())
+
+    def train(self, epoch):
         loss = 0.0
         accuracy = 0.0
         for step, (x, y) in enumerate(self.train_dataset):
-            print('Step:', step)
-            loss, accuracy = train_one_step(self.model, self.optimizer_function, x, y)
-            print(np.mean(loss), np.mean(accuracy))
+            loss, accuracy = train_one_batch(self.model, self.optimizer_function, x, y)
+
+            if step % 50 == 0:
+                print('epoch', epoch, 'step', step, ': loss', loss.numpy(), '; accuracy', accuracy.numpy())
 
         return loss, accuracy
