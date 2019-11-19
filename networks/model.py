@@ -1,38 +1,12 @@
 import numpy as np
+import time
 
 import tensorflow as tf
 
 from networks import network
-from networks import loss
-from networks import optimizer
-
-@tf.function
-def compute_loss(logits, labels):
-    return tf.reduce_mean(
-        tf.nn.sigmoid_cross_entropy_with_logits(
-            logits=logits, labels=labels))
-
-@tf.function
-def compute_accuracy(logits, labels):
-    predictions = tf.nn.softmax(logits)
-    return tf.reduce_mean(tf.cast(tf.equal(predictions, labels), tf.float32))
-
-@tf.function
-def train_one_batch(model, optimizer, x, y):
-
-    with tf.GradientTape() as tape:
-        logits = model(x)
-        loss = compute_loss(logits, y)
-
-    # compute gradient
-    grads = tape.gradient(loss, model.trainable_variables)
-    # update to weights
-    optimizer.apply_gradients(zip(grads, model.trainable_variables))
-
-    accuracy = compute_accuracy(logits, y)
-
-    # loss and accuracy is scalar tensor
-    return loss, accuracy
+from networks import losses
+from networks import optimizers
+from networks import metrics
 
 class MyModel():
     def __init__(
@@ -49,15 +23,19 @@ class MyModel():
         test_loader=None
     ):
         self.epochs = epochs
-        self.optimizer_function = optimizer.get(optimizer_fn)
+        self.optimizer_fn = optimizers.get(optimizer_fn)
+        self.loss_fn = losses.get(loss_fn)
 
         self.model = network.get(
             name = arch,
-            optimizer_function = optimizer.get(optimizer_fn),
-            loss_function = loss.get(loss_fn),
+            optimizer_function = optimizers.get(optimizer_fn),
+            loss_function = losses.get(loss_fn),
             n_filters = n_filters,
             input_shape = input_shape
         )
+
+        self.metric_acc = tf.keras.metrics.BinaryAccuracy()
+        self.metric_loss = tf.keras.metrics.Mean('loss', dtype=tf.float32)
 
         if train_loader:
             self.train_dataset = tf.data.Dataset.from_generator(train_loader, (tf.float32, tf.float32))
@@ -70,20 +48,45 @@ class MyModel():
         if test_loader:
             self.test_dataset = tf.data.Dataset.from_generator(test_loader, (tf.float32, tf.float32))
 
+    @tf.function
+    def train_step(self, model, optimizer_fn, loss_fn, images, labels):
+        with tf.GradientTape() as tape:
+            logits = model(images, training=True)
+            loss = loss_fn(labels, logits)
+            self.metric_acc(labels, logits)
+
+        grads = tape.gradient(loss, model.trainable_variables)
+        optimizer_fn.apply_gradients(zip(grads, model.trainable_variables))
+
+        return loss
+
+    def train(self):
+        for step, (images, labels) in enumerate(self.train_dataset):
+            loss = self.train_step(self.model, self.optimizer_fn, self.loss_fn, images, labels)
+            self.metric_loss(loss)
+
+            print(f'Batch number: {step}...', end="\r")
+
+        res_loss = self.metric_loss.result().numpy()
+        res_acc = self.metric_acc.result().numpy()
+
+        self.metric_loss.reset_states()
+        self.metric_acc.reset_states()
+
+        return res_loss, res_acc
+
     def start_train(self):
         self.model.summary()
 
         for epoch in range(self.epochs):
-            loss, accuracy = self.train(epoch)
-            print('Final epoch', epoch, ': loss', loss.numpy(), '; accuracy', accuracy.numpy())
+            start = time.time()
 
-    def train(self, epoch):
-        loss = 0.0
-        accuracy = 0.0
-        for step, (x, y) in enumerate(self.train_dataset):
-            loss, accuracy = train_one_batch(self.model, self.optimizer_function, x, y)
+            loss, acc = self.train()
 
-            if step % 50 == 0:
-                print('epoch', epoch, 'step', step, ': loss', loss.numpy(), '; accuracy', accuracy.numpy())
+            end = time.time()
 
-        return loss, accuracy
+            print(f'Train time for epoch #{epoch + 1} ({int(self.optimizer_fn.iterations)} total steps): {end - start:.3f}s')
+            print(f'Loss: {loss}, Acc: {acc}')
+            print('-----------------------------------------------------------')
+
+    
