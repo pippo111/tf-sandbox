@@ -1,5 +1,6 @@
 import numpy as np
 import time
+import os
 
 import tensorflow as tf
 
@@ -13,10 +14,11 @@ class MyModel():
         epochs=100,
         arch='Unet',
         optimizer_fn='RAdam',
-        loss_fn='boundary_dice',
+        loss_fn='dice',
         n_filters=16,
         input_shape=(256, 176),
         batch_size=16,
+        checkpoint='checkpoint',
         train_loader=None,
         valid_loader=None
     ):
@@ -25,6 +27,7 @@ class MyModel():
         self.loss_name = loss_fn
         self.loss_fn = losses.get(loss_fn)
         self.batch_size = batch_size
+        self.checkpoint_path = os.path.join('output/models', checkpoint)
 
         self.model = network.get(
             name = arch,
@@ -119,13 +122,25 @@ class MyModel():
 
             end = time.time()
 
-            if best_result < dice_loss:
-                pass
-
             print(f'Train time for epoch {epoch + 1} / {self.epochs}: {end - start:.3f}s')
             print(f'Train loss: {loss:0.5f}, accuracy: {acc * 100:0.2f}%')
             print(f'Validation loss: {val_loss:0.5f}, accuracy: {val_acc * 100:0.2f}%')
             print(f'Validation dice: {dice_loss:0.5f}, weighted: {w_dice_loss:0.5f}')
+
+            if dice_loss < best_result:
+                print(f'Model improved {best_result} -> {dice_loss}')
+                best_result = dice_loss
+                print(f'Saving checkpoint to: {self.checkpoint_path}.h5')
+                self.model.save(f'{self.checkpoint_path}.h5')
+                self.save_results(val_loss, dice_loss, w_dice_loss, val_acc)
+                
+            else:
+                print(f'No improvements from {best_result}')
+
             print('-----------------------------------------------------------')
 
+    def save_results(self, val_loss, dice_loss, w_dice_loss, val_acc):
+        with open(f'{self.checkpoint_path}.csv', 'w') as f: 
+            f.write(f'val_loss,dice_loss,w_dice_loss,val_acc\n')
+            f.write(f'{val_loss},{dice_loss},{w_dice_loss},{val_acc}')
     

@@ -1,9 +1,24 @@
 from networks.dataset import get_loader
 from networks.model import MyModel
 
-dataset_dir = '/home/filip/Projekty/ML/datasets/processed/mindboggle_84_coronal_176x256_lateral_ventricle_inn'
-train_loader = get_loader(dataset_dir, 'train', limit=512)
-valid_loader = get_loader(dataset_dir, 'valid')
+import config as cfg
 
-my_model = MyModel(train_loader = train_loader, valid_loader = valid_loader)
-my_model.start_train()
+dataset_dir = cfg.setup['dataset_dir']
+train_loader = get_loader(dataset_dir, 'train', limit=1024)
+valid_loader = get_loader(dataset_dir, 'valid', limit=128)
+
+for model in cfg.models:
+    my_model = MyModel(
+        epochs = cfg.setup['epochs'],
+        batch_size = cfg.setup['batch_size'],
+        input_shape = cfg.setup['input_shape'],
+        arch = model['arch'],
+        optimizer_fn = model['optimizer_fn'],
+        loss_fn = model['loss_fn'],
+        n_filters = model['filters'],
+        checkpoint = model['checkpoint'],
+        train_loader = train_loader,
+        valid_loader = valid_loader
+    )
+
+    my_model.start_train()
