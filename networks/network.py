@@ -1,4 +1,4 @@
-from tensorflow.keras.optimizers import Adam
+from tensorflow import keras
 
 from networks.archs.unet import unet
 from networks.archs.unet3d import unet3d
@@ -10,7 +10,7 @@ def get(
     input_shape=(48,64,64),
     n_filters=16,
     loss_function='binary_crossentropy',
-    optimizer_function=Adam(),
+    optimizer_function=keras.optimizers.Adam(),
     batch_norm=True
 ):
     networks = dict(

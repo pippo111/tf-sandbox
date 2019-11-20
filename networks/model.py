@@ -12,7 +12,7 @@ class MyModel():
         self,
         epochs=100,
         arch='Unet',
-        optimizer_fn='Adam',
+        optimizer_fn='RAdam',
         loss_fn='binary',
         n_filters=16,
         input_shape=(256, 176),

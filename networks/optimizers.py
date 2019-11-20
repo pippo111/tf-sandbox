@@ -1,10 +1,10 @@
-from tensorflow.keras.optimizers import Adam
-from tensorflow_addons.optimizers import rectified_adam as RAdam
+from tensorflow import keras
+import tensorflow_addons as tfa
 
 def get(name):
   optimizer_fn = dict(
-    Adam=Adam(),
-    RAdam=RAdam
+    Adam=keras.optimizers.Adam(),
+    RAdam=tfa.optimizers.RectifiedAdam()
   )
 
   return optimizer_fn[name]

@@ -1,5 +1,4 @@
 import tensorflow as tf
-from sklearn.utils import class_weight
 import numpy as np
 
 def _calc_weights(y_true):
