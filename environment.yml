@@ -41,7 +41,7 @@ dependencies:
   - numpy=1.17.3=py37hd14ec0e_0
   - numpy-base=1.17.3=py37hde5b4d6_0
   - olefile=0.46=py37_0
-  - openssl=1.1.1d=h7b6447c_3
+  - openssl=1.1.1=h7b6447c_0
   - opt_einsum=3.1.0=py_0
   - pillow=6.2.1=py37h34e0f95_0
   - pip=19.3.1=py37_0
