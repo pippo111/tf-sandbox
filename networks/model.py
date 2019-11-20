@@ -13,7 +13,7 @@ class MyModel():
         epochs=100,
         arch='Unet',
         optimizer_fn='Adam',
-        loss_fn='gdl',
+        loss_fn='boundary_gdl',
         n_filters=16,
         input_shape=(256, 176),
         batch_size=16,
@@ -23,6 +23,7 @@ class MyModel():
     ):
         self.epochs = epochs
         self.optimizer_fn = optimizers.get(optimizer_fn)
+        self.loss_name = loss_fn
         self.loss_fn = losses.get(loss_fn)
         self.batch_size = batch_size
 
@@ -46,22 +47,29 @@ class MyModel():
             self.test_dataset = tf.data.Dataset.from_generator(test_loader, (tf.float32, tf.float32))
 
     @tf.function
-    def train_step(self, model, optimizer_fn, loss_fn, images, labels):
+    def train_step(self, images, labels, alpha=None):
         with tf.GradientTape() as tape:
-            logits = model(images, training=True)
-            loss = loss_fn(labels, logits)
+            logits = self.model(images, training=True)
 
-        grads = tape.gradient(loss, model.trainable_variables)
-        optimizer_fn.apply_gradients(zip(grads, model.trainable_variables))
+            if self.loss_name.startswith('boundary_'):
+                loss = self.loss_fn(alpha)(labels, logits)
+            else:
+                loss = self.loss_fn(labels, logits)
+
+        grads = tape.gradient(loss, self.model.trainable_variables)
+        self.optimizer_fn.apply_gradients(zip(grads, self.model.trainable_variables))
 
         return loss, logits
 
-    def train(self):
+    def train(self, epoch):
         metric_loss = tf.keras.metrics.Mean('loss', dtype=tf.float32)
         metric_acc = tf.keras.metrics.BinaryAccuracy('acc')
 
+        alpha_step = 1 / self.epochs
+        alpha = 1 - epoch * alpha_step
+
         for step, (images, labels) in enumerate(self.train_dataset):
-            loss, logits = self.train_step(self.model, self.optimizer_fn, self.loss_fn, images, labels)
+            loss, logits = self.train_step(images, labels, alpha)
             metric_acc(labels, logits)
             metric_loss(loss)
 
@@ -108,7 +116,7 @@ class MyModel():
         for epoch in range(self.epochs):
             start = time.time()
 
-            loss, acc = self.train()
+            loss, acc = self.train(epoch)
             val_loss, dice_loss, w_dice_loss, val_acc = self.validate()
 
             end = time.time()
