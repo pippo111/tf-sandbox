@@ -12,14 +12,13 @@ class MyModel():
         self,
         epochs=100,
         arch='Unet',
-        optimizer_fn='Adam',
-        loss_fn='boundary_gdl',
+        optimizer_fn='RAdam',
+        loss_fn='boundary_dice',
         n_filters=16,
         input_shape=(256, 176),
         batch_size=16,
         train_loader=None,
-        valid_loader=None,
-        test_loader=None
+        valid_loader=None
     ):
         self.epochs = epochs
         self.optimizer_fn = optimizers.get(optimizer_fn)
@@ -42,9 +41,6 @@ class MyModel():
         if valid_loader:
             self.valid_dataset = tf.data.Dataset.from_generator(valid_loader, (tf.float32, tf.float32))
             self.valid_dataset = self.valid_dataset.batch(batch_size)
-
-        if test_loader:
-            self.test_dataset = tf.data.Dataset.from_generator(test_loader, (tf.float32, tf.float32))
 
     @tf.function
     def train_step(self, images, labels, alpha=None):
@@ -111,6 +107,8 @@ class MyModel():
         return res_val_loss, res_dice_loss, res_w_dice_loss, res_val_acc
 
     def start_train(self):
+        best_result = np.Inf
+
         self.model.summary()
 
         for epoch in range(self.epochs):
@@ -120,6 +118,9 @@ class MyModel():
             val_loss, dice_loss, w_dice_loss, val_acc = self.validate()
 
             end = time.time()
+
+            if best_result < dice_loss:
+                pass
 
             print(f'Train time for epoch {epoch + 1} / {self.epochs}: {end - start:.3f}s')
             print(f'Train loss: {loss:0.5f}, accuracy: {acc * 100:0.2f}%')
