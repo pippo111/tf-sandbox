@@ -80,12 +80,9 @@ class MyModel():
 
         return loss, logits
 
-    def train(self, epoch):
+    def train(self, alpha):
         metric_loss = tf.keras.metrics.Mean('loss', dtype=tf.float32)
         metric_acc = tf.keras.metrics.BinaryAccuracy('acc')
-
-        alpha_step = 1 / self.epochs
-        alpha = 1 - epoch * alpha_step
 
         for step, (images, labels) in enumerate(self.train_dataset):
             loss, logits = self.train_step(images, labels, alpha)
@@ -103,13 +100,19 @@ class MyModel():
 
         return res_loss, res_acc
 
-    def validate(self):
+    def validate(self, alpha):
         metric_val_loss = tf.keras.metrics.Mean('val_loss', dtype=tf.float32)
         metric_val_acc = tf.keras.metrics.BinaryAccuracy('val_acc')
 
         for step, (images, labels) in enumerate(self.valid_dataset):
             logits = self.model(images, training=False)
-            metric_val_loss(losses.get('binary')(labels, logits))
+
+            if self.loss_name.startswith('boundary_'):
+                loss = self.loss_fn(alpha)(labels, logits)
+            else:
+                loss = self.loss_fn(labels, logits)
+
+            metric_val_loss(loss)
             metric_val_acc(labels, logits)
 
             if step % 16 == 0:
@@ -130,8 +133,11 @@ class MyModel():
         for epoch in range(self.epochs):
             start = time.time()
 
-            loss, acc = self.train(epoch)
-            val_loss, val_acc = self.validate()
+            alpha_step = 1 / self.epochs
+            alpha = 1 - epoch * alpha_step
+
+            loss, acc = self.train(alpha)
+            val_loss, val_acc = self.validate(alpha)
 
             end = time.time()
 
