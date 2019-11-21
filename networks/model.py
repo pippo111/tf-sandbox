@@ -39,7 +39,7 @@ class MyModel():
 
         if train_loader:
             self.train_dataset = tf.data.Dataset.from_generator(train_loader, (tf.float32, tf.float32))
-            self.train_dataset = self.train_dataset.shuffle(20000).batch(batch_size)
+            self.train_dataset = self.train_dataset.shuffle(1024).batch(batch_size)
 
         if valid_loader:
             self.valid_dataset = tf.data.Dataset.from_generator(valid_loader, (tf.float32, tf.float32))
@@ -72,7 +72,8 @@ class MyModel():
             metric_acc(labels, logits)
             metric_loss(loss)
 
-            print(f'Train batch number: {step}...', end="\r")
+            if step % 16 == 0:
+                print(f'Train batch number: {step}...', end="\r")
 
         res_loss = metric_loss.result().numpy()
         res_acc = metric_acc.result().numpy()
@@ -95,7 +96,8 @@ class MyModel():
             metric_w_dice_loss(losses.get('weighted_dice')(labels, logits))
             metric_val_acc(labels, logits)
 
-            print(f'Validation batch number: {step}...', end="\r")
+            if step % 16 == 0:
+                print(f'Validation batch number: {step}...', end="\r")
 
         res_val_loss = metric_val_loss.result().numpy()
         res_dice_loss = metric_dice_loss.result().numpy()
@@ -111,6 +113,7 @@ class MyModel():
 
     def start_train(self):
         best_result = np.Inf
+        trials = 0
 
         self.model.summary()
 
@@ -130,17 +133,21 @@ class MyModel():
             if dice_loss < best_result:
                 print(f'Model improved {best_result} -> {dice_loss}')
                 best_result = dice_loss
+                trials = 0
                 print(f'Saving checkpoint to: {self.checkpoint_path}.h5')
                 self.model.save(f'{self.checkpoint_path}.h5')
                 self.save_results(val_loss, dice_loss, w_dice_loss, val_acc)
-                
+
             else:
-                print(f'No improvements from {best_result}')
+                print(f'No improvements from {best_result}. Trial {trials}.')
+                if trials == 12:
+                    print('Early stopping')
+                    break
+                trials += 1
 
             print('-----------------------------------------------------------')
 
     def save_results(self, val_loss, dice_loss, w_dice_loss, val_acc):
-        with open(f'{self.checkpoint_path}.csv', 'w') as f: 
+        with open(f'{self.checkpoint_path}.csv', 'w') as f:
             f.write(f'val_loss,dice_loss,w_dice_loss,val_acc\n')
             f.write(f'{val_loss},{dice_loss},{w_dice_loss},{val_acc}')
-    

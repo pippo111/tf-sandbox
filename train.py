@@ -4,8 +4,8 @@ from networks.model import MyModel
 import config as cfg
 
 dataset_dir = cfg.setup['dataset_dir']
-train_loader = get_loader(dataset_dir, 'train', limit=1024)
-valid_loader = get_loader(dataset_dir, 'valid', limit=128)
+train_loader = get_loader(dataset_dir, 'train')
+valid_loader = get_loader(dataset_dir, 'valid')
 
 for model in cfg.models:
     my_model = MyModel(
