@@ -189,8 +189,9 @@ class MyModel():
         res_dice_loss = metric_dice_loss.result().numpy()
         res_w_dice_loss = metric_w_dice_loss.result().numpy()
         res_val_acc = metric_val_acc.result().numpy()
-        res_fp = fp.result().numpy()
-        res_fn = fn.result().numpy()
+        res_fp = fp.result().numpy().astype(np.int32)
+        res_fn = fn.result().numpy().astype(np.int32)
+        res_total_f = res_fp + res_fn
         res_precision = precision.result().numpy()
         res_recall = recall.result().numpy()
         res_f1_score = f1score.result().numpy()
@@ -205,31 +206,31 @@ class MyModel():
         recall.reset_states()
         f1score.reset_states()
 
-        return res_val_loss, res_dice_loss, res_w_dice_loss, res_val_acc, res_fp, res_fn, res_precision, res_recall, res_f1_score
+        return res_val_loss, res_dice_loss, res_w_dice_loss, res_val_acc, res_fp, res_fn, res_total_f, res_precision, res_recall, res_f1_score
 
     def start_evaluate(self):
         start = time.time()
 
-        val_loss, dice_loss, w_dice_loss, val_acc, fp, fn, precision, recall, f1_score = self.evaluate()
+        binary, dice, weighted_dice, accuracy, fp, fn, total_f, precision, recall, f1_score = self.evaluate()
 
         end = time.time()
 
-        print(f'Validation loss: {val_loss}, accuracy: {val_acc * 100:0.3f}%')
-        print(f'Validation dice: {dice_loss}, weighted: {w_dice_loss}')
+        print(f'Validation loss: {binary}, accuracy: {accuracy * 100:0.3f}%')
+        print(f'Validation dice: {dice}, weighted: {weighted_dice}')
         print(f'False positives: {fp}, false negatives: {fn}')
         print(f'Precision: {precision}, recall: {recall}')
         print(f'F1 Score: {f1_score}')
         print('-----------------------------------------------------------')
 
-    def save_results(self, val_loss, dice_loss, w_dice_loss, val_acc):
-        csv_file = f'{self.checkpoint_path}.csv'
+        self.save_results(binary, dice, weighted_dice, accuracy, fp, fn, total_f, precision, recall, f1_score)
+
+    def save_results(self, binary, dice, weighted_dice, accuracy, fp, fn, total_f, precision, recall, f1_score):
+        csv_file = f'{self.checkpoint_dir}/results.csv'
 
         if not os.path.exists(csv_file):
             with open(csv_file, 'a') as f:
-                f.write(f'name,val_loss,dice_loss,w_dice_loss,val_acc\n')
-                f.write(f'{self.checkpoint},{val_loss},{dice_loss},{w_dice_loss},{val_acc}\n')
+                f.write(f'name,binary,dice,weighted_dice,accuracy,false positives,false negatives,total falses,precision,recall,f1 score\n')
+                f.write(f'{self.checkpoint},{binary},{dice},{weighted_dice},{accuracy * 100:0.3f}%,{fp},{fn},{total_f},{precision * 100:0.3f}%,{recall * 100:0.3f}%,{f1_score * 100:0.3f}%\n')
         else:
             with open(csv_file, 'a') as f:
-                f.write(f'{self.checkpoint},{val_loss},{dice_loss},{w_dice_loss},{val_acc}\n')
-
-        
+                f.write(f'{self.checkpoint},{binary},{dice},{weighted_dice},{accuracy * 100:0.3f}%,{fp},{fn},{total_f},{precision * 100:0.3f}%,{recall * 100:0.3f}%,{f1_score * 100:0.3f}%\n')
