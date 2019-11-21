@@ -3,6 +3,7 @@ import time
 import os
 
 import tensorflow as tf
+import tensorflow_addons as tfa
 
 from networks import network
 from networks import losses
@@ -13,11 +14,13 @@ class MyModel():
         self,
         batch_size=16,
         checkpoint='checkpoint',
+        checkpoint_dir='output/models',
         train_loader=None,
         valid_loader=None
     ):
         self.checkpoint = checkpoint
-        self.checkpoint_path = os.path.join('output/models', checkpoint)
+        self.checkpoint_dir = checkpoint_dir
+        self.checkpoint_path = os.path.join(checkpoint_dir, checkpoint)
         self.batch_size = batch_size
 
         if train_loader:
@@ -51,6 +54,16 @@ class MyModel():
         )
 
         self.model.summary()
+
+    def load_model(self, checkpoint='checkpoint', checkpoint_dir='output/models', verbose=1):
+        self.checkpoint = checkpoint
+        self.checkpoint_dir = checkpoint_dir
+        self.checkpoint_path = os.path.join(checkpoint_dir, checkpoint)
+
+        self.model = tf.keras.models.load_model(f'{self.checkpoint_path}.h5')
+
+        if verbose:
+            self.model.summary()
 
     @tf.function
     def train_step(self, images, labels, alpha=None):
@@ -152,7 +165,81 @@ class MyModel():
 
             print('-----------------------------------------------------------')
 
+    def evaluate(self):
+        threshold = 0.5
+
+        metric_val_loss = tf.keras.metrics.Mean('val_loss', dtype=tf.float32)
+        metric_dice_loss = tf.keras.metrics.Mean('dice_loss', dtype=tf.float32)
+        metric_w_dice_loss = tf.keras.metrics.Mean('w_dice_loss', dtype=tf.float32)
+        metric_val_acc = tf.keras.metrics.BinaryAccuracy('val_acc')
+        fn = tf.keras.metrics.FalseNegatives(dtype=tf.float32)
+        fp = tf.keras.metrics.FalsePositives(dtype=tf.float32)
+        precision = tf.keras.metrics.Precision()
+        recall = tf.keras.metrics.Recall()
+        f1score = tfa.metrics.F1Score(num_classes=1, average='micro')
+
+        for step, (images, labels) in enumerate(self.valid_dataset):
+            logits = self.model(images, training=False)
+            preds = tf.dtypes.cast(logits > 0.5, tf.float32)
+
+            metric_val_loss(losses.get('binary')(labels, preds))
+            metric_dice_loss(losses.get('dice')(labels, preds))
+            metric_w_dice_loss(losses.get('weighted_dice')(labels, preds))
+            metric_val_acc(labels, preds)
+            fp(labels, preds)
+            fn(labels, preds)
+            precision(labels, preds)
+            recall(labels, preds)
+            f1score(labels, preds)
+
+            if step % 16 == 0:
+                print(f'Validation batch number: {step}...', end="\r")
+
+        res_val_loss = metric_val_loss.result().numpy()
+        res_dice_loss = metric_dice_loss.result().numpy()
+        res_w_dice_loss = metric_w_dice_loss.result().numpy()
+        res_val_acc = metric_val_acc.result().numpy()
+        res_fp = fp.result().numpy()
+        res_fn = fn.result().numpy()
+        res_precision = precision.result().numpy()
+        res_recall = recall.result().numpy()
+        res_f1_score = f1score.result().numpy()
+
+        metric_val_loss.reset_states()
+        metric_dice_loss.reset_states()
+        metric_w_dice_loss.reset_states()
+        metric_val_acc.reset_states()
+        fp.reset_states()
+        fn.reset_states()
+        precision.reset_states()
+        recall.reset_states()
+        f1score.reset_states()
+
+        return res_val_loss, res_dice_loss, res_w_dice_loss, res_val_acc, res_fp, res_fn, res_precision, res_recall, res_f1_score
+
+    def start_evaluate(self):
+        start = time.time()
+
+        val_loss, dice_loss, w_dice_loss, val_acc, fp, fn, precision, recall, f1_score = self.evaluate()
+
+        end = time.time()
+
+        print(f'Validation loss: {val_loss}, accuracy: {val_acc * 100:0.3f}%')
+        print(f'Validation dice: {dice_loss}, weighted: {w_dice_loss}')
+        print(f'False positives: {fp}, false negatives: {fn}')
+        print(f'Precision: {precision}, recall: {recall}')
+        print(f'F1 Score: {f1_score}')
+        print('-----------------------------------------------------------')
+
     def save_results(self, val_loss, dice_loss, w_dice_loss, val_acc):
-        with open(f'{self.checkpoint_path}.csv', 'w') as f:
-            f.write(f'name,val_loss,dice_loss,w_dice_loss,val_acc\n')
-            f.write(f'{self.checkpoint},{val_loss},{dice_loss},{w_dice_loss},{val_acc}')
+        csv_file = f'{self.checkpoint_path}.csv'
+
+        if not os.path.exists(csv_file):
+            with open(csv_file, 'a') as f:
+                f.write(f'name,val_loss,dice_loss,w_dice_loss,val_acc\n')
+                f.write(f'{self.checkpoint},{val_loss},{dice_loss},{w_dice_loss},{val_acc}\n')
+        else:
+            with open(csv_file, 'a') as f:
+                f.write(f'{self.checkpoint},{val_loss},{dice_loss},{w_dice_loss},{val_acc}\n')
+
+        
