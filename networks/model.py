@@ -107,12 +107,7 @@ class MyModel():
         for step, (images, labels) in enumerate(self.valid_dataset):
             logits = self.model(images, training=False)
 
-            if self.loss_name.startswith('boundary_'):
-                loss = self.loss_fn(alpha)(labels, logits)
-            else:
-                loss = self.loss_fn(labels, logits)
-
-            metric_val_loss(loss)
+            metric_val_loss(losses.get('dice')(labels, logits))
             metric_val_acc(labels, logits)
 
             if step % 16 == 0:
