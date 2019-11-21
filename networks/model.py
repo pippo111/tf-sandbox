@@ -11,31 +11,14 @@ from networks import optimizers
 class MyModel():
     def __init__(
         self,
-        epochs=100,
-        arch='Unet',
-        optimizer_fn='RAdam',
-        loss_fn='dice',
-        n_filters=16,
-        input_shape=(256, 176),
         batch_size=16,
         checkpoint='checkpoint',
         train_loader=None,
         valid_loader=None
     ):
-        self.epochs = epochs
-        self.optimizer_fn = optimizers.get(optimizer_fn)
-        self.loss_name = loss_fn
-        self.loss_fn = losses.get(loss_fn)
-        self.batch_size = batch_size
+        self.checkpoint = checkpoint
         self.checkpoint_path = os.path.join('output/models', checkpoint)
-
-        self.model = network.get(
-            name = arch,
-            optimizer_function = optimizers.get(optimizer_fn),
-            loss_function = losses.get(loss_fn),
-            n_filters = n_filters,
-            input_shape = input_shape
-        )
+        self.batch_size = batch_size
 
         if train_loader:
             self.train_dataset = tf.data.Dataset.from_generator(train_loader, (tf.float32, tf.float32))
@@ -44,6 +27,30 @@ class MyModel():
         if valid_loader:
             self.valid_dataset = tf.data.Dataset.from_generator(valid_loader, (tf.float32, tf.float32))
             self.valid_dataset = self.valid_dataset.batch(batch_size)
+
+    def create_model(
+        self,
+        epochs=100,
+        arch='Unet',
+        optimizer_fn='RAdam',
+        loss_fn='dice',
+        n_filters=16,
+        input_shape=(256, 176)
+    ):
+        self.epochs = epochs
+        self.optimizer_fn = optimizers.get(optimizer_fn)
+        self.loss_name = loss_fn
+        self.loss_fn = losses.get(loss_fn)
+        
+        self.model = network.get(
+            name = arch,
+            optimizer_function = optimizers.get(optimizer_fn),
+            loss_function = losses.get(loss_fn),
+            n_filters = n_filters,
+            input_shape = input_shape
+        )
+
+        self.model.summary()
 
     @tf.function
     def train_step(self, images, labels, alpha=None):
@@ -115,8 +122,6 @@ class MyModel():
         best_result = np.Inf
         trials = 0
 
-        self.model.summary()
-
         for epoch in range(self.epochs):
             start = time.time()
 
@@ -149,5 +154,5 @@ class MyModel():
 
     def save_results(self, val_loss, dice_loss, w_dice_loss, val_acc):
         with open(f'{self.checkpoint_path}.csv', 'w') as f:
-            f.write(f'val_loss,dice_loss,w_dice_loss,val_acc\n')
-            f.write(f'{val_loss},{dice_loss},{w_dice_loss},{val_acc}')
+            f.write(f'name,val_loss,dice_loss,w_dice_loss,val_acc\n')
+            f.write(f'{self.checkpoint},{val_loss},{dice_loss},{w_dice_loss},{val_acc}')
