@@ -105,31 +105,23 @@ class MyModel():
 
     def validate(self):
         metric_val_loss = tf.keras.metrics.Mean('val_loss', dtype=tf.float32)
-        metric_dice_loss = tf.keras.metrics.Mean('dice_loss', dtype=tf.float32)
-        metric_w_dice_loss = tf.keras.metrics.Mean('w_dice_loss', dtype=tf.float32)
         metric_val_acc = tf.keras.metrics.BinaryAccuracy('val_acc')
 
         for step, (images, labels) in enumerate(self.valid_dataset):
             logits = self.model(images, training=False)
             metric_val_loss(losses.get('binary')(labels, logits))
-            metric_dice_loss(losses.get('dice')(labels, logits))
-            metric_w_dice_loss(losses.get('weighted_dice')(labels, logits))
             metric_val_acc(labels, logits)
 
             if step % 16 == 0:
                 print(f'Validation batch number: {step}...', end="\r")
 
         res_val_loss = metric_val_loss.result().numpy()
-        res_dice_loss = metric_dice_loss.result().numpy()
-        res_w_dice_loss = metric_w_dice_loss.result().numpy()
         res_val_acc = metric_val_acc.result().numpy()
 
         metric_val_loss.reset_states()
-        metric_dice_loss.reset_states()
-        metric_w_dice_loss.reset_states()
         metric_val_acc.reset_states()
 
-        return res_val_loss, res_dice_loss, res_w_dice_loss, res_val_acc
+        return res_val_loss, res_val_acc
 
     def start_train(self):
         best_result = np.Inf
@@ -139,22 +131,20 @@ class MyModel():
             start = time.time()
 
             loss, acc = self.train(epoch)
-            val_loss, dice_loss, w_dice_loss, val_acc = self.validate()
+            val_loss, val_acc = self.validate()
 
             end = time.time()
 
             print(f'Train time for epoch {epoch + 1} / {self.epochs}: {end - start:.3f}s')
             print(f'Train loss: {loss:0.5f}, accuracy: {acc * 100:0.2f}%')
-            print(f'Validation loss: {val_loss:0.5f}, accuracy: {val_acc * 100:0.2f}%')
-            print(f'Validation dice: {dice_loss:0.5f}, weighted: {w_dice_loss:0.5f}')
+            print(f'Validation dice: {val_loss:0.5f}, accuracy: {val_acc * 100:0.2f}%')
 
-            if dice_loss < best_result:
-                print(f'Model improved {best_result} -> {dice_loss}')
-                best_result = dice_loss
+            if val_loss < best_result:
+                print(f'Model improved {best_result} -> {val_loss}')
+                best_result = val_loss
                 trials = 0
                 print(f'Saving checkpoint to: {self.checkpoint_path}.h5')
                 self.model.save(f'{self.checkpoint_path}.h5')
-                self.save_results(val_loss, dice_loss, w_dice_loss, val_acc)
 
             else:
                 print(f'No improvements from {best_result}. Trial {trials}.')

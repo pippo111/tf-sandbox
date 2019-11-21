@@ -25,3 +25,16 @@ for model in cfg.models:
     )
 
     my_model.start_train()
+
+    my_model.create_model(
+        epochs = cfg.setup['epochs'],
+        input_shape = cfg.setup['input_shape'],
+        arch = model['arch'],
+        optimizer_fn = model['optimizer_fn'],
+        loss_fn = model['loss_fn'],
+        n_filters = model['filters'],
+    )
+
+    my_model.load_model(checkpoint = model['checkpoint'], verbose=0)
+
+    my_model.start_evaluate()
