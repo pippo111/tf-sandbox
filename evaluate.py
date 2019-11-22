@@ -4,7 +4,7 @@ from networks.model import MyModel
 import config as cfg
 
 dataset_dir = cfg.setup['dataset_dir']
-valid_loader = get_loader(dataset_dir, 'valid', limit=64)
+valid_loader = get_loader(dataset_dir, 'valid')
 
 for model in cfg.models:
     my_model = MyModel(

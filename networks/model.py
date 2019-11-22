@@ -8,6 +8,8 @@ import tensorflow_addons as tfa
 from networks import network
 from networks import losses
 from networks import optimizers
+from utils.image import cubify_scan
+from utils.vtk import render_mesh
 
 class MyModel():
     def __init__(
@@ -16,7 +18,8 @@ class MyModel():
         checkpoint='checkpoint',
         checkpoint_dir='output/models',
         train_loader=None,
-        valid_loader=None
+        valid_loader=None,
+        test_loader=None
     ):
         self.checkpoint = checkpoint
         self.checkpoint_dir = checkpoint_dir
@@ -30,6 +33,10 @@ class MyModel():
         if valid_loader:
             self.valid_dataset = tf.data.Dataset.from_generator(valid_loader, (tf.float32, tf.float32))
             self.valid_dataset = self.valid_dataset.batch(batch_size)
+
+        if test_loader:
+            self.test_dataset = tf.data.Dataset.from_generator(test_loader, (tf.float32, tf.float32))
+            self.test_dataset = self.test_dataset.batch(batch_size)
 
     def create_model(
         self,
@@ -224,6 +231,30 @@ class MyModel():
         print('-----------------------------------------------------------')
 
         self.save_results(binary, dice, weighted_dice, accuracy, fp, fn, total_f, precision, recall, f1_score)
+
+    def start_visualize(self):
+        scan_mask = list()
+
+        for step, (images, labels) in enumerate(self.test_dataset):
+            logits = self.model(images, training=False)
+            preds = tf.dtypes.cast(logits > 0.5, tf.int8)
+            scan_mask.append(preds.numpy().astype(np.int8))
+                
+        scan_mask = np.concatenate([img for img in scan_mask])
+        scan_mask = scan_mask.squeeze()
+
+        print('Mask shape:', scan_mask.shape)
+
+        scan_mask = cubify_scan(scan_mask, 256)
+ 
+        render_mesh([
+            {
+                'name': 'lateral_ventricles',
+                'data': scan_mask,
+                'color': 'Green',
+                'opacity': 1.0
+            }
+        ], 256)
 
     def save_results(self, binary, dice, weighted_dice, accuracy, fp, fn, total_f, precision, recall, f1_score):
         csv_file = f'{self.checkpoint_dir}/results.csv'
