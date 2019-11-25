@@ -205,7 +205,7 @@ class MyModel():
         for step, (images, labels) in enumerate(self.valid_dataset):
             logits = self.model(images, training=False)
 
-            metric_val_loss(losses.get('dice')(labels, logits))
+            metric_val_loss(losses.get('weighted_dice')(labels, logits))
             metric_val_acc(labels, logits)
 
             if step % 4 == 0:
