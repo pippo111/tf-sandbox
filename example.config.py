@@ -2,9 +2,10 @@
 setup = {
     'dataset_dir': '/home/filip/Projekty/ML/datasets/processed/mindboggle_84_coronal_176x256_lateral_ventricle_inn',
     'struct': 'lateral_ventricle',
-    'epochs': 2,
+    'epochs': 100,
     'batch_size': 16,
-    'input_shape': (256, 176)
+    'input_shape': (256, 176),
+    'augment': True
 }
 
 # Model different parameters

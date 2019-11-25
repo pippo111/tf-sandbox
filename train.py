@@ -12,7 +12,8 @@ for model in cfg.models:
         batch_size = cfg.setup['batch_size'],
         checkpoint = model['checkpoint'],
         train_loader = train_loader,
-        valid_loader = valid_loader
+        valid_loader = valid_loader,
+        augment = cfg.setup['augment']
     )
 
     my_model.create_model(

@@ -8,8 +8,10 @@ import tensorflow_addons as tfa
 from networks import network
 from networks import losses
 from networks import optimizers
-from utils.image import cubify_scan
+from utils.image import cubify_scan, augment_xy
 from utils.vtk import render_mesh
+
+AUTOTUNE = tf.data.experimental.AUTOTUNE
 
 class MyModel():
     def __init__(
@@ -19,8 +21,12 @@ class MyModel():
         checkpoint_dir='output/models',
         train_loader=None,
         valid_loader=None,
-        test_loader=None
+        test_loader=None,
+        augment=False,
+        seed=5
     ):
+        tf.random.set_seed(seed)
+
         self.checkpoint = checkpoint
         self.checkpoint_dir = checkpoint_dir
         self.checkpoint_path = os.path.join(checkpoint_dir, checkpoint)
@@ -28,11 +34,20 @@ class MyModel():
 
         if train_loader:
             self.train_dataset = tf.data.Dataset.from_generator(train_loader, (tf.float32, tf.float32))
-            self.train_dataset = self.train_dataset.shuffle(1024).batch(batch_size)
+            if augment:
+                self.train_dataset = self.train_dataset.shuffle(1024)
+                self.train_dataset = self.train_dataset.batch(batch_size)
+                self.train_dataset = self.train_dataset.map(augment_xy, num_parallel_calls=AUTOTUNE)
+                self.train_dataset = self.train_dataset.cache()
+                self.train_dataset = self.train_dataset.prefetch(buffer_size=AUTOTUNE)
+            else:
+                self.train_dataset = self.train_dataset.shuffle(1024)
+                self.train_dataset = self.train_dataset.batch(batch_size)
+                self.train_dataset = self.train_dataset.prefetch(buffer_size=AUTOTUNE)
 
         if valid_loader:
             self.valid_dataset = tf.data.Dataset.from_generator(valid_loader, (tf.float32, tf.float32))
-            self.valid_dataset = self.valid_dataset.batch(batch_size)
+            self.valid_dataset = self.valid_dataset.batch(batch_size).prefetch(buffer_size=AUTOTUNE)
 
         if test_loader:
             self.test_dataset = tf.data.Dataset.from_generator(test_loader, (tf.float32, tf.float32))
@@ -96,7 +111,7 @@ class MyModel():
             metric_acc(labels, logits)
             metric_loss(loss)
 
-            if step % 16 == 0:
+            if step % 4 == 0:
                 print(f'Train batch number: {step}...', end="\r")
 
         res_loss = metric_loss.result().numpy()
@@ -117,7 +132,7 @@ class MyModel():
             metric_val_loss(losses.get('dice')(labels, logits))
             metric_val_acc(labels, logits)
 
-            if step % 16 == 0:
+            if step % 4 == 0:
                 print(f'Validation batch number: {step}...', end="\r")
 
         res_val_loss = metric_val_loss.result().numpy()
