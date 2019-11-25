@@ -276,6 +276,7 @@ class MyModel():
         csv_file = f'{self.checkpoint_dir}/results.csv'
 
         formats = {
+            'name': None,
             'accuracy': '%',
             'fp': None,
             'fn': None,
@@ -291,7 +292,7 @@ class MyModel():
             if formats[name] == '%':
                 results[name] = f'{results[name] * 100:0.3f}%'
 
-        output = pd.DataFrame([results])
+        output = pd.DataFrame([{'name': self.checkpoint, **results}])
 
         if not os.path.exists(csv_file):
             output.to_csv(csv_file, index=False, header=True, mode='a')
