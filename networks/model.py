@@ -1,6 +1,7 @@
 import numpy as np
 import time
 import os
+import pandas as pd
 
 import tensorflow as tf
 import tensorflow_addons as tfa
@@ -8,10 +9,12 @@ import tensorflow_addons as tfa
 from networks import network
 from networks import losses
 from networks import optimizers
+from networks import metrics
 from utils.image import cubify_scan, augment_xy
 from utils.vtk import render_mesh
 
 AUTOTUNE = tf.data.experimental.AUTOTUNE
+
 
 class MyModel():
     def __init__(
@@ -33,24 +36,31 @@ class MyModel():
         self.batch_size = batch_size
 
         if train_loader:
-            self.train_dataset = tf.data.Dataset.from_generator(train_loader, (tf.float32, tf.float32))
+            self.train_dataset = tf.data.Dataset.from_generator(
+                train_loader, (tf.float32, tf.float32))
             if augment:
                 self.train_dataset = self.train_dataset.shuffle(1024)
                 self.train_dataset = self.train_dataset.batch(batch_size)
-                self.train_dataset = self.train_dataset.map(augment_xy, num_parallel_calls=AUTOTUNE)
+                self.train_dataset = self.train_dataset.map(
+                    augment_xy, num_parallel_calls=AUTOTUNE)
                 self.train_dataset = self.train_dataset.cache()
-                self.train_dataset = self.train_dataset.prefetch(buffer_size=AUTOTUNE)
+                self.train_dataset = self.train_dataset.prefetch(
+                    buffer_size=AUTOTUNE)
             else:
                 self.train_dataset = self.train_dataset.shuffle(1024)
                 self.train_dataset = self.train_dataset.batch(batch_size)
-                self.train_dataset = self.train_dataset.prefetch(buffer_size=AUTOTUNE)
+                self.train_dataset = self.train_dataset.prefetch(
+                    buffer_size=AUTOTUNE)
 
         if valid_loader:
-            self.valid_dataset = tf.data.Dataset.from_generator(valid_loader, (tf.float32, tf.float32))
-            self.valid_dataset = self.valid_dataset.batch(batch_size).prefetch(buffer_size=AUTOTUNE)
+            self.valid_dataset = tf.data.Dataset.from_generator(
+                valid_loader, (tf.float32, tf.float32))
+            self.valid_dataset = self.valid_dataset.batch(
+                batch_size).prefetch(buffer_size=AUTOTUNE)
 
         if test_loader:
-            self.test_dataset = tf.data.Dataset.from_generator(test_loader, (tf.float32, tf.float32))
+            self.test_dataset = tf.data.Dataset.from_generator(
+                test_loader, (tf.float32, tf.float32))
             self.test_dataset = self.test_dataset.batch(batch_size)
 
     def create_model(
@@ -66,13 +76,13 @@ class MyModel():
         self.optimizer_fn = optimizers.get(optimizer_fn)
         self.loss_name = loss_fn
         self.loss_fn = losses.get(loss_fn)
-        
+
         self.model = network.get(
-            name = arch,
-            optimizer_function = optimizers.get(optimizer_fn),
-            loss_function = losses.get(loss_fn),
-            n_filters = n_filters,
-            input_shape = input_shape
+            name=arch,
+            optimizer_function=optimizers.get(optimizer_fn),
+            loss_function=losses.get(loss_fn),
+            n_filters=n_filters,
+            input_shape=input_shape
         )
 
         self.model.summary()
@@ -98,7 +108,8 @@ class MyModel():
                 loss = self.loss_fn(labels, logits)
 
         grads = tape.gradient(loss, self.model.trainable_variables)
-        self.optimizer_fn.apply_gradients(zip(grads, self.model.trainable_variables))
+        self.optimizer_fn.apply_gradients(
+            zip(grads, self.model.trainable_variables))
 
         return loss, logits
 
@@ -158,9 +169,11 @@ class MyModel():
 
             end = time.time()
 
-            print(f'Train time for epoch {epoch + 1} / {self.epochs}: {end - start:.3f}s')
+            print(
+                f'Train time for epoch {epoch + 1} / {self.epochs}: {end - start:.3f}s')
             print(f'Train loss: {loss:0.5f}, accuracy: {acc * 100:0.2f}%')
-            print(f'Validation dice: {val_loss:0.5f}, accuracy: {val_acc * 100:0.2f}%')
+            print(
+                f'Validation dice: {val_loss:0.5f}, accuracy: {val_acc * 100:0.2f}%')
 
             if val_loss < best_result:
                 print(f'Model improved {best_result} -> {val_loss}')
@@ -181,71 +194,53 @@ class MyModel():
     def evaluate(self):
         threshold = 0.5
 
-        metric_val_loss = tf.keras.metrics.Mean('val_loss', dtype=tf.float32)
-        metric_dice_loss = tf.keras.metrics.Mean('dice_loss', dtype=tf.float32)
-        metric_w_dice_loss = tf.keras.metrics.Mean('w_dice_loss', dtype=tf.float32)
-        metric_val_acc = tf.keras.metrics.BinaryAccuracy('val_acc')
-        fn = tf.keras.metrics.FalseNegatives(dtype=tf.float32)
-        fp = tf.keras.metrics.FalsePositives(dtype=tf.float32)
-        precision = tf.keras.metrics.Precision()
-        recall = tf.keras.metrics.Recall()
-        f1score = tfa.metrics.F1Score(num_classes=1, average='micro')
+        metric_names = [
+            'accuracy',
+            'fp',
+            'fn',
+            'precision',
+            'recall',
+            'f1score'
+        ]
+        losses_names = [
+            'binary',
+            'dice',
+            'weighted_dice'
+        ]
+
+        results = dict()
+        histories = dict()
+
+        for name in metric_names + losses_names:
+            histories[name] = metrics.get(name)
 
         for step, (images, labels) in enumerate(self.valid_dataset):
             logits = self.model(images, training=False)
-            preds = tf.dtypes.cast(logits > 0.5, tf.float32)
+            preds = tf.dtypes.cast(logits > threshold, tf.float32)
 
-            metric_val_loss(losses.get('binary')(labels, preds))
-            metric_dice_loss(losses.get('dice')(labels, preds))
-            metric_w_dice_loss(losses.get('weighted_dice')(labels, preds))
-            metric_val_acc(labels, preds)
-            fp(labels, preds)
-            fn(labels, preds)
-            precision(labels, preds)
-            recall(labels, preds)
-            f1score(labels, preds)
+            for name in metric_names:
+                histories[name](labels, preds)
+            for name in losses_names:
+                histories[name](losses.get(name)(labels, preds))
 
-            if step % 16 == 0:
+            if step % 4 == 0:
                 print(f'Validation batch number: {step}...', end="\r")
 
-        res_val_loss = metric_val_loss.result().numpy()
-        res_dice_loss = metric_dice_loss.result().numpy()
-        res_w_dice_loss = metric_w_dice_loss.result().numpy()
-        res_val_acc = metric_val_acc.result().numpy()
-        res_fp = fp.result().numpy().astype(np.int32)
-        res_fn = fn.result().numpy().astype(np.int32)
-        res_total_f = res_fp + res_fn
-        res_precision = precision.result().numpy()
-        res_recall = recall.result().numpy()
-        res_f1_score = f1score.result().numpy()
+        for name in metric_names + losses_names:
+            results[name] = histories[name].result().numpy()
+            histories[name].reset_states()
 
-        metric_val_loss.reset_states()
-        metric_dice_loss.reset_states()
-        metric_w_dice_loss.reset_states()
-        metric_val_acc.reset_states()
-        fp.reset_states()
-        fn.reset_states()
-        precision.reset_states()
-        recall.reset_states()
-        f1score.reset_states()
-
-        return res_val_loss, res_dice_loss, res_w_dice_loss, res_val_acc, res_fp, res_fn, res_total_f, res_precision, res_recall, res_f1_score
+        return results
 
     def start_evaluate(self):
         start = time.time()
 
-        binary, dice, weighted_dice, accuracy, fp, fn, total_f, precision, recall, f1_score = self.evaluate()
+        results = self.evaluate()
 
         end = time.time()
 
-        print(f'Validation loss: {binary}, accuracy: {accuracy * 100:0.3f}%')
-        print(f'Validation dice: {dice}, weighted: {weighted_dice}')
-        print(f'False positives: {fp}, false negatives: {fn}')
-        print(f'Precision: {precision}, recall: {recall}')
-        print(f'F1 Score: {f1_score}')
-        print('-----------------------------------------------------------')
-
-        self.save_results(binary, dice, weighted_dice, accuracy, fp, fn, total_f, precision, recall, f1_score)
+        self.show_results(results)
+        self.save_results(results)
 
     def start_visualize(self):
         scan_mask = list()
@@ -254,14 +249,14 @@ class MyModel():
             logits = self.model(images, training=False)
             preds = tf.dtypes.cast(logits > 0.5, tf.int8)
             scan_mask.append(preds.numpy().astype(np.int8))
-                
+
         scan_mask = np.concatenate([img for img in scan_mask])
         scan_mask = scan_mask.squeeze()
 
         print('Mask shape:', scan_mask.shape)
 
         scan_mask = cubify_scan(scan_mask, 256)
- 
+
         render_mesh([
             {
                 'name': 'lateral_ventricles',
@@ -271,13 +266,40 @@ class MyModel():
             }
         ], 256)
 
-    def save_results(self, binary, dice, weighted_dice, accuracy, fp, fn, total_f, precision, recall, f1_score):
+    def show_results(self, results):
+        print(
+            f'Validation loss: {results["binary"]}, accuracy: {results["accuracy"] * 100:0.3f}%')
+        print(
+            f'Validation dice: {results["dice"]}, weighted: {results["weighted_dice"]}')
+        print(
+            f'False positives: {results["fp"]}, false negatives: {results["fn"]}')
+        print(
+            f'Precision: {results["precision"]}, recall: {results["recall"]}')
+        print(f'F1 Score: {results["f1score"]}')
+        print('-----------------------------------------------------------')
+
+    def save_results(self, results):
         csv_file = f'{self.checkpoint_dir}/results.csv'
 
+        formats = {
+            'accuracy': '%',
+            'fp': None,
+            'fn': None,
+            'precision': '%',
+            'recall': '%',
+            'f1score': '%',
+            'binary': None,
+            'dice': None,
+            'weighted_dice': None
+        }
+
+        for name in results:
+            if formats[name] == '%':
+                results[name] = f'{results[name] * 100:0.3f}%'
+
+        output = pd.DataFrame([results])
+
         if not os.path.exists(csv_file):
-            with open(csv_file, 'a') as f:
-                f.write(f'name,binary,dice,weighted_dice,accuracy,false positives,false negatives,total falses,precision,recall,f1 score\n')
-                f.write(f'{self.checkpoint},{binary},{dice},{weighted_dice},{accuracy * 100:0.3f}%,{fp},{fn},{total_f},{precision * 100:0.3f}%,{recall * 100:0.3f}%,{f1_score * 100:0.3f}%\n')
+            output.to_csv(csv_file, index=False, header=True, mode='a')
         else:
-            with open(csv_file, 'a') as f:
-                f.write(f'{self.checkpoint},{binary},{dice},{weighted_dice},{accuracy * 100:0.3f}%,{fp},{fn},{total_f},{precision * 100:0.3f}%,{recall * 100:0.3f}%,{f1_score * 100:0.3f}%\n')
+            output.to_csv(csv_file, index=False, header=False, mode='a')
