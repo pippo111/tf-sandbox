@@ -1,11 +1,13 @@
+import cv2
 import numpy as np
 from random import uniform, randint
 import tensorflow as tf
-import tensorflow_addons as tfa
+from albumentations import RandomBrightnessContrast, ShiftScaleRotate, Compose
 
-""" Converts scan image to cuboid by padding with zeros
-"""
+
 def cubify_scan(data: np.ndarray, cube_dim: int) -> np.ndarray:
+    """ Converts scan image to cuboid by padding with zeros
+    """
     pad_w = (cube_dim - data.shape[0]) // 2
     pad_h = (cube_dim - data.shape[1]) // 2
     pad_d = (cube_dim - data.shape[2]) // 2
@@ -16,18 +18,25 @@ def cubify_scan(data: np.ndarray, cube_dim: int) -> np.ndarray:
         mode='constant',
         constant_values=0
     )
-    
+
     return data
 
-@tf.function
-def augment_xy(images, labels, angle_range=0.15, shift_range=10):
-    angle = uniform(-angle_range, angle_range)
-    shift = randint(-shift_range, shift_range)
-    
-    images = tfa.image.transform_ops.rotate(images, angle)
-    labels = tfa.image.transform_ops.rotate(labels, angle)
-    
-    images = tfa.image.translate_ops.translate(images, [shift, shift])
-    labels = tfa.image.translate_ops.translate(labels, [shift, shift])
 
-    return images, labels
+def augment_xy(image, mask):
+    augmentation = Compose([
+        RandomBrightnessContrast(brightness_limit=0.15,
+                                 contrast_limit=0.15, p=0.5),
+        ShiftScaleRotate(
+            shift_limit=0.05,
+            scale_limit=0.1,
+            rotate_limit=10,
+            interpolation=cv2.INTER_LINEAR,
+            border_mode=cv2.BORDER_CONSTANT,
+            value=0.,
+            p=0.5
+        )
+    ])
+
+    augmented = augmentation(image=image, mask=mask)
+
+    return augmented['image'], augmented['mask']

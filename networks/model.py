@@ -25,7 +25,6 @@ class MyModel():
         train_loader=None,
         valid_loader=None,
         test_loader=None,
-        augment=False,
         seed=5
     ):
         tf.random.set_seed(seed)
@@ -38,19 +37,11 @@ class MyModel():
         if train_loader:
             self.train_dataset = tf.data.Dataset.from_generator(
                 train_loader, (tf.float32, tf.float32))
-            if augment:
-                self.train_dataset = self.train_dataset.shuffle(1024)
-                self.train_dataset = self.train_dataset.batch(batch_size)
-                self.train_dataset = self.train_dataset.map(
-                    augment_xy, num_parallel_calls=AUTOTUNE)
-                self.train_dataset = self.train_dataset.cache()
-                self.train_dataset = self.train_dataset.prefetch(
-                    buffer_size=AUTOTUNE)
-            else:
-                self.train_dataset = self.train_dataset.shuffle(1024)
-                self.train_dataset = self.train_dataset.batch(batch_size)
-                self.train_dataset = self.train_dataset.prefetch(
-                    buffer_size=AUTOTUNE)
+            self.train_dataset = self.train_dataset.shuffle(1024)
+            self.train_dataset = self.train_dataset.batch(batch_size)
+            self.train_dataset = self.train_dataset.cache()
+            self.train_dataset = self.train_dataset.prefetch(
+                buffer_size=AUTOTUNE)
 
         if valid_loader:
             self.valid_dataset = tf.data.Dataset.from_generator(
