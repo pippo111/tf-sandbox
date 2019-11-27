@@ -36,23 +36,21 @@ class MyModel():
 
         if train_loader:
             self.train_dataset = tf.data.Dataset.from_generator(
-                train_loader, (tf.float32, tf.float32))
-            self.train_dataset = self.train_dataset.shuffle(1024)
-            self.train_dataset = self.train_dataset.batch(batch_size)
+                lambda: train_loader, (tf.float32, tf.float32))
+            self.train_dataset = self.train_dataset.shuffle(256)
             self.train_dataset = self.train_dataset.cache()
             self.train_dataset = self.train_dataset.prefetch(
                 buffer_size=AUTOTUNE)
 
         if valid_loader:
             self.valid_dataset = tf.data.Dataset.from_generator(
-                valid_loader, (tf.float32, tf.float32))
-            self.valid_dataset = self.valid_dataset.batch(
-                batch_size).prefetch(buffer_size=AUTOTUNE)
+                lambda: valid_loader, (tf.float32, tf.float32))
+            self.valid_dataset = self.valid_dataset.prefetch(
+                buffer_size=AUTOTUNE)
 
         if test_loader:
             self.test_dataset = tf.data.Dataset.from_generator(
-                test_loader, (tf.float32, tf.float32))
-            self.test_dataset = self.test_dataset.batch(batch_size)
+                lambda: test_loader, (tf.float32, tf.float32))
 
     def create_model(
         self,
