@@ -1,5 +1,6 @@
 name: tf-sandbox
 channels:
+  - anaconda
   - conda-forge
   - defaults
 dependencies:
@@ -9,6 +10,7 @@ dependencies:
   - albumentations=0.4.3=py_0
   - astor=0.8.0=py37_0
   - attrs=19.3.0=py_0
+  - autopep8=1.4.4=py_0
   - backcall=0.1.0=py37_0
   - blas=1.0=mkl
   - bleach=3.1.0=py37_0
@@ -61,6 +63,7 @@ dependencies:
   - jasper=1.900.1=h07fcdf6_1006
   - jedi=0.15.1=py37_0
   - jinja2=2.10.3=py_0
+  - joblib=0.14.0=py_0
   - jpeg=9c=h14c3975_1001
   - jsoncpp=1.8.4=hfd86e86_0
   - jsonschema=3.2.0=py37_0
@@ -119,7 +122,6 @@ dependencies:
   - opencv=4.1.0=py37h5517eff_4
   - openh264=1.8.0=hdbcaa40_1000
   - openssl=1.1.1d=h7b6447c_3
-  - opt_einsum=3.1.0=py_0
   - pandas=0.25.3=py37he6710b0_0
   - pandoc=2.2.3.2=0
   - pandocfilters=1.4.2=py37_1
@@ -134,6 +136,7 @@ dependencies:
   - prompt_toolkit=2.0.10=py_0
   - protobuf=3.10.1=py37he6710b0_0
   - ptyprocess=0.6.0=py37_0
+  - pycodestyle=2.5.0=py37_0
   - pygments=2.4.2=py_0
   - pyparsing=2.4.5=py_0
   - pyqt=5.9.2=py37h05f1152_2
@@ -191,6 +194,7 @@ dependencies:
   - zlib=1.2.11=h7b6447c_3
   - zstd=1.4.4=h3b9ef0a_1
   - pip:
+    - opt-einsum==3.1.0
     - tensorflow-addons==0.6.0
     - tensorflow-gpu==2.0.0
 prefix: /home/filip/miniconda3/envs/tf-sandbox
