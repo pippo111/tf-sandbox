@@ -1,9 +1,6 @@
-# Input extracted datasets
-/input/datasets/*
-!/input/datasets/.gitkeep
-# Input raw niftii datasets
-/input/niftii/*
-!/input/niftii/.gitkeep
+# Jupyter notebooks
+/notebooks/*
+!/notebooks/.gitkeep
 # Output logs
 /output/logs/*
 !/output/logs/.gitkeep
