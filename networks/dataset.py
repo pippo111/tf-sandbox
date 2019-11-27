@@ -14,6 +14,7 @@ class DataSequence(keras.utils.Sequence):
     def __init__(self, x_files, y_files, batch_size=16, augment=False):
         self.x, self.y = x_files, y_files
         self.batch_size = batch_size
+        self.augment = augment
 
     def __len__(self):
         return int(np.ceil(len(self.x) / float(self.batch_size)))
@@ -37,7 +38,8 @@ class DataSequence(keras.utils.Sequence):
         y = img_to_array(
             load_img(y, color_mode='grayscale')) / 255
 
-        x, y = augment_xy(x, y)
+        if self.augment:
+            x, y = augment_xy(x, y)
 
         return x, y
 
