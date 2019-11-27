@@ -132,7 +132,7 @@ class MyModel():
 
             else:
                 print(f'No improvements from {best_result}. Trial {trials}.')
-                if trials == 12:
+                if trials == 25:
                     print('Early stopping')
                     break
                 trials += 1
