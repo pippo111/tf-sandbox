@@ -1,6 +1,7 @@
 import glob
 import os
 import numpy as np
+import random
 from joblib import Parallel, delayed
 
 from utils.image import augment_xy
@@ -11,10 +12,12 @@ img_to_array = keras.preprocessing.image.img_to_array
 
 
 class DataSequence(keras.utils.Sequence):
-    def __init__(self, x_files, y_files, batch_size=16, augment=False):
+    def __init__(self, x_files, y_files, batch_size=16, augment=False, shuffle=False):
         self.x, self.y = x_files, y_files
         self.batch_size = batch_size
         self.augment = augment
+        self.shuffle = shuffle
+        self.on_epoch_end()
 
     def __len__(self):
         return int(np.ceil(len(self.x) / float(self.batch_size)))
@@ -31,6 +34,12 @@ class DataSequence(keras.utils.Sequence):
         batch_y = np.array(batch_y).astype(np.float32)
 
         return batch_x, batch_y
+
+    def on_epoch_end(self):
+        if self.shuffle:
+            to_shuffle = list(zip(self.x, self.y))
+            random.shuffle(to_shuffle)
+            self.x, self.y = zip(*to_shuffle)
 
     def prepare(self, i, x, y):
         x = img_to_array(

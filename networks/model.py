@@ -37,7 +37,6 @@ class MyModel():
         if train_loader:
             self.train_dataset = tf.data.Dataset.from_generator(
                 lambda: train_loader, (tf.float32, tf.float32))
-            self.train_dataset = self.train_dataset.shuffle(256)
             self.train_dataset = self.train_dataset.cache()
             self.train_dataset = self.train_dataset.prefetch(
                 buffer_size=AUTOTUNE)
