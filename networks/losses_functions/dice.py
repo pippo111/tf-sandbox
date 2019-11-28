@@ -1,10 +1,11 @@
 import tensorflow as tf
 
-def dice_coef(y_true, y_pred, smooth: int = 1) -> float:
-    intersection = tf.reduce_sum(tf.math.abs(y_true * y_pred), axis=-1)
-    return (2. * intersection + smooth) / (
-            tf.reduce_sum(tf.square(y_true), -1) + tf.reduce_sum(tf.square(y_pred), -1) + smooth)
 
+def dice_loss(y_true, y_pred):
+    y_true_flat = tf.reshape(y_true, [-1])
+    y_pred_flat = tf.reshape(y_pred, [-1])
 
-def dice_loss(y_true, y_pred) -> float:
-    return 1. - dice_coef(y_true, y_pred)
+    numerator = 2 * tf.reduce_sum(y_true_flat * y_pred_flat)
+    denominator = tf.reduce_sum(y_true_flat + y_pred_flat)
+
+    return 1 - numerator / denominator
