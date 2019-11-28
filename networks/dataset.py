@@ -53,7 +53,7 @@ class DataSequence(keras.utils.Sequence):
         return x, y
 
 
-def get_loader(dataset_dir, dataset_type, batch_size=16, augment=False, limit=None):
+def get_loader(dataset_dir, dataset_type, batch_size=16, shuffle=False, augment=False, limit=None):
     x_files = sorted(
         glob.glob(os.path.join(dataset_dir, dataset_type,
                                'images/**', '*.png'), recursive=True)
@@ -63,6 +63,7 @@ def get_loader(dataset_dir, dataset_type, batch_size=16, augment=False, limit=No
                                'labels/**', '*.png'), recursive=True)
     )[:limit]
 
-    data_sequence = DataSequence(x_files, y_files, batch_size, augment)
+    data_sequence = DataSequence(
+        x_files, y_files, batch_size, augment, shuffle)
 
     return data_sequence

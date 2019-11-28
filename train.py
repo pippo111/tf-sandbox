@@ -4,7 +4,8 @@ from networks.model import MyModel
 import config as cfg
 
 dataset_dir = cfg.setup['dataset_dir']
-train_loader = get_loader(dataset_dir, 'train', augment=cfg.setup['augment'])
+train_loader = get_loader(dataset_dir, 'train',
+                          augment=cfg.setup['augment'], shuffle=True)
 valid_loader = get_loader(dataset_dir, 'valid')
 
 for model in cfg.models:
