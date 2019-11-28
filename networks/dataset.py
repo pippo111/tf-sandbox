@@ -26,8 +26,8 @@ class DataSequence(keras.utils.Sequence):
         batch_x = self.x[idx * self.batch_size:(idx + 1) * self.batch_size]
         batch_y = self.y[idx * self.batch_size:(idx + 1) * self.batch_size]
 
-        res = Parallel(n_jobs=-1, prefer="threads")(delayed(self.prepare)(i, x, y)
-                                                    for i, (x, y) in enumerate(zip(batch_x, batch_y)))
+        res = Parallel(n_jobs=-1, prefer="threads")(delayed(self.prepare)(x, y)
+                                                    for x, y in zip(batch_x, batch_y))
 
         batch_x, batch_y = zip(*res)
         batch_x = np.array(batch_x).astype(np.float32)
@@ -41,7 +41,7 @@ class DataSequence(keras.utils.Sequence):
             random.shuffle(to_shuffle)
             self.x, self.y = zip(*to_shuffle)
 
-    def prepare(self, i, x, y):
+    def prepare(self, x, y):
         x = img_to_array(
             load_img(x, color_mode='grayscale')) / 255
         y = img_to_array(
