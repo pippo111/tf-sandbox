@@ -12,7 +12,7 @@ for model in cfg.models:
     my_model = MyModel()
 
     my_model.setup_model(
-        train_generator=train_loader,
+        # train_generator=train_loader,
         valid_generator=valid_loader,
         checkpoint=model['checkpoint'])
 

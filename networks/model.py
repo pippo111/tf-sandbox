@@ -23,6 +23,9 @@ class MyModel():
         seed=5
     ):
         tf.random.set_seed(seed)
+        self.train_dataset = None
+        self.valid_dataset = None
+        self.test_dataset = None
         self.checkpoint_dir = checkpoint_dir
 
     def setup_model(
@@ -30,9 +33,11 @@ class MyModel():
         train_generator=None,
         valid_generator=None,
         test_generator=None,
-        checkpoint='checkpoint',
-
+        checkpoint='checkpoint'
     ):
+        """Basic model setup for generators and checkpoint filename
+        """
+
         if train_generator:
             self.train_dataset = tf.data.Dataset.from_generator(
                 train_generator, (tf.float32, tf.float32))
@@ -61,6 +66,13 @@ class MyModel():
                      n_filters=16,
                      input_shape=(256, 176),
                      verbose=1):
+        """Creates model architecture and setup loss function and optimizer
+
+        Architecture is taken from arch library
+        Loss function is taken from loss functions library
+        Optimizer is taken from optimizer library
+        """
+
         self.optimizer_fn = optimizers.get(optimizer_fn)
         self.loss_name = loss_fn
         self.loss_fn = losses.get(loss_fn)
@@ -75,14 +87,19 @@ class MyModel():
             self.model.summary()
 
     def load_model(self, verbose=1):
+        """Loads model from given checkpoint
+        """
         self.model = tf.keras.models.load_model(f'{self.checkpoint_path}.h5')
 
         if verbose:
             self.model.summary()
 
     def start_train(self, epochs):
+        """Starts training process
+        """
         if not self.train_dataset:
-            pass    # TODO exception
+            raise Exception(
+                'No data to process. Make sure you have setup data generators.')
 
         best_result = np.Inf
         trials = 0
