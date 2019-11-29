@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-from random import uniform, randint
+import random
 import tensorflow as tf
 from albumentations import RandomBrightnessContrast, ShiftScaleRotate, Compose
 
@@ -22,7 +22,9 @@ def cubify_scan(data: np.ndarray, cube_dim: int) -> np.ndarray:
     return data
 
 
-def augment_xy(image, mask):
+def augment_xy(image, mask, seed=5):
+    random.seed(seed)
+
     augmentation = Compose([
         RandomBrightnessContrast(brightness_limit=0.15,
                                  contrast_limit=0.15, p=0.5),
