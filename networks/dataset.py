@@ -12,11 +12,12 @@ img_to_array = keras.preprocessing.image.img_to_array
 
 
 class DataSequence(keras.utils.Sequence):
-    def __init__(self, x_files, y_files, batch_size=16, augment=False, shuffle=False):
+    def __init__(self, x_files, y_files, batch_size=16, augment=False, shuffle=False, seed=5):
         self.x, self.y = x_files, y_files
         self.batch_size = batch_size
         self.augment = augment
         self.shuffle = shuffle
+        self.seed = seed
         self.on_epoch_end()
 
     def __len__(self):
@@ -38,7 +39,7 @@ class DataSequence(keras.utils.Sequence):
     def on_epoch_end(self):
         if self.shuffle:
             to_shuffle = list(zip(self.x, self.y))
-            random.shuffle(to_shuffle)
+            random.Random(self.seed).shuffle(to_shuffle)
             self.x, self.y = zip(*to_shuffle)
 
     def prepare(self, x, y):
