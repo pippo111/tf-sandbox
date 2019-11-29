@@ -31,11 +31,7 @@ class MyModel():
         valid_generator=None,
         test_generator=None,
         checkpoint='checkpoint',
-        arch='Unet',
-        optimizer_fn='RAdam',
-        loss_fn='dice',
-        n_filters=16,
-        input_shape=(256, 176)
+
     ):
         if train_generator:
             self.train_dataset = tf.data.Dataset.from_generator(
@@ -58,6 +54,13 @@ class MyModel():
         self.checkpoint = checkpoint
         self.checkpoint_path = os.path.join(self.checkpoint_dir, checkpoint)
 
+    def create_model(self,
+                     arch='Unet',
+                     optimizer_fn='RAdam',
+                     loss_fn='dice',
+                     n_filters=16,
+                     input_shape=(256, 176),
+                     verbose=1):
         self.optimizer_fn = optimizers.get(optimizer_fn)
         self.loss_name = loss_fn
         self.loss_fn = losses.get(loss_fn)
@@ -68,7 +71,8 @@ class MyModel():
             input_shape=input_shape
         )
 
-        self.model.summary()
+        if verbose:
+            self.model.summary()
 
     def load_model(self, verbose=1):
         self.model = tf.keras.models.load_model(f'{self.checkpoint_path}.h5')

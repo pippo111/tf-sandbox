@@ -14,13 +14,14 @@ for model in cfg.models:
     my_model.setup_model(
         train_generator=train_loader,
         valid_generator=valid_loader,
-        checkpoint=model['checkpoint'],
-        input_shape=cfg.setup['input_shape'],
-        arch=model['arch'],
-        optimizer_fn=model['optimizer_fn'],
-        loss_fn=model['loss_fn'],
-        n_filters=model['filters'],
-    )
+        checkpoint=model['checkpoint'])
+
+    my_model.create_model(arch=model['arch'],
+                          optimizer_fn=model['optimizer_fn'],
+                          loss_fn=model['loss_fn'],
+                          n_filters=model['filters'],
+                          input_shape=cfg.setup['input_shape'],
+                          verbose=1)
 
     my_model.start_train(epochs=cfg.setup['epochs'])
 
