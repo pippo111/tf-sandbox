@@ -9,15 +9,12 @@ train_loader = get_loader(dataset_dir, 'train',
 valid_loader = get_loader(dataset_dir, 'valid')
 
 for model in cfg.models:
-    my_model = MyModel(
-        batch_size=cfg.setup['batch_size'],
+    my_model = MyModel()
+
+    my_model.setup_model(
+        train_generator=train_loader,
+        valid_generator=valid_loader,
         checkpoint=model['checkpoint'],
-        train_loader=train_loader,
-        valid_loader=valid_loader
-    )
-
-    my_model.create_model(
-        epochs=cfg.setup['epochs'],
         input_shape=cfg.setup['input_shape'],
         arch=model['arch'],
         optimizer_fn=model['optimizer_fn'],
@@ -25,17 +22,17 @@ for model in cfg.models:
         n_filters=model['filters'],
     )
 
-    my_model.start_train()
+    my_model.start_train(epochs=cfg.setup['epochs'])
 
-    my_model.create_model(
-        epochs=cfg.setup['epochs'],
-        input_shape=cfg.setup['input_shape'],
-        arch=model['arch'],
-        optimizer_fn=model['optimizer_fn'],
-        loss_fn=model['loss_fn'],
-        n_filters=model['filters'],
-    )
+    # my_model.create_model(
+    #     epochs=cfg.setup['epochs'],
+    #     input_shape=cfg.setup['input_shape'],
+    #     arch=model['arch'],
+    #     optimizer_fn=model['optimizer_fn'],
+    #     loss_fn=model['loss_fn'],
+    #     n_filters=model['filters'],
+    # )
 
-    my_model.load_model(checkpoint=model['checkpoint'], verbose=0)
+    # my_model.load_model(checkpoint=model['checkpoint'], verbose=0)
 
-    my_model.start_evaluate()
+    # my_model.start_evaluate()

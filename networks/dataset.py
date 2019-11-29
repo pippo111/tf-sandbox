@@ -67,4 +67,4 @@ def get_loader(dataset_dir, dataset_type, batch_size=16, shuffle=False, augment=
     data_sequence = DataSequence(
         x_files, y_files, batch_size, augment, shuffle)
 
-    return data_sequence
+    return lambda: data_sequence

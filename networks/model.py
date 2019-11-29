@@ -19,48 +19,45 @@ AUTOTUNE = tf.data.experimental.AUTOTUNE
 class MyModel():
     def __init__(
         self,
-        batch_size=16,
-        checkpoint='checkpoint',
         checkpoint_dir='output/models',
-        train_loader=None,
-        valid_loader=None,
-        test_loader=None,
         seed=5
     ):
         tf.random.set_seed(seed)
-
-        self.checkpoint = checkpoint
         self.checkpoint_dir = checkpoint_dir
-        self.checkpoint_path = os.path.join(checkpoint_dir, checkpoint)
-        self.batch_size = batch_size
 
-        if train_loader:
-            self.train_dataset = tf.data.Dataset.from_generator(
-                lambda: train_loader, (tf.float32, tf.float32))
-            self.train_dataset = self.train_dataset.cache()
-            self.train_dataset = self.train_dataset.prefetch(
-                buffer_size=AUTOTUNE)
-
-        if valid_loader:
-            self.valid_dataset = tf.data.Dataset.from_generator(
-                lambda: valid_loader, (tf.float32, tf.float32))
-            self.valid_dataset = self.valid_dataset.prefetch(
-                buffer_size=AUTOTUNE)
-
-        if test_loader:
-            self.test_dataset = tf.data.Dataset.from_generator(
-                lambda: test_loader, (tf.float32, tf.float32))
-
-    def create_model(
+    def setup_model(
         self,
-        epochs=100,
+        train_generator=None,
+        valid_generator=None,
+        test_generator=None,
+        checkpoint='checkpoint',
         arch='Unet',
         optimizer_fn='RAdam',
         loss_fn='dice',
         n_filters=16,
         input_shape=(256, 176)
     ):
-        self.epochs = epochs
+        if train_generator:
+            self.train_dataset = tf.data.Dataset.from_generator(
+                train_generator, (tf.float32, tf.float32))
+            self.train_dataset = self.train_dataset.cache()
+            self.train_dataset = self.train_dataset.prefetch(
+                buffer_size=AUTOTUNE)
+
+        if valid_generator:
+            self.valid_dataset = tf.data.Dataset.from_generator(
+                valid_generator, (tf.float32, tf.float32))
+            self.valid_dataset = self.valid_dataset.cache()
+            self.valid_dataset = self.valid_dataset.prefetch(
+                buffer_size=AUTOTUNE)
+
+        if test_generator:
+            self.test_dataset = tf.data.Dataset.from_generator(
+                test_generator, (tf.float32, tf.float32))
+
+        self.checkpoint = checkpoint
+        self.checkpoint_path = os.path.join(self.checkpoint_dir, checkpoint)
+
         self.optimizer_fn = optimizers.get(optimizer_fn)
         self.loss_name = loss_fn
         self.loss_fn = losses.get(loss_fn)
@@ -73,24 +70,23 @@ class MyModel():
 
         self.model.summary()
 
-    def load_model(self, checkpoint='checkpoint', checkpoint_dir='output/models', verbose=1):
-        self.checkpoint = checkpoint
-        self.checkpoint_dir = checkpoint_dir
-        self.checkpoint_path = os.path.join(checkpoint_dir, checkpoint)
-
+    def load_model(self, verbose=1):
         self.model = tf.keras.models.load_model(f'{self.checkpoint_path}.h5')
 
         if verbose:
             self.model.summary()
 
-    def start_train(self):
+    def start_train(self, epochs):
+        if not self.train_dataset:
+            pass    # TODO exception
+
         best_result = np.Inf
         trials = 0
 
-        for epoch in range(self.epochs):
+        for epoch in range(epochs):
             start = time.time()
 
-            alpha_step = 1 / self.epochs
+            alpha_step = 1 / epochs
             alpha = 1 - epoch * alpha_step
 
             metric_loss = tf.keras.metrics.Mean('loss', dtype=tf.float32)
@@ -115,7 +111,7 @@ class MyModel():
             end = time.time()
 
             print(
-                f'Train time for epoch {epoch + 1} / {self.epochs}: {end - start:.3f}s')
+                f'Train time for epoch {epoch + 1} / {epochs}: {end - start:.3f}s')
             print(f'Train loss: {loss:0.5f}, accuracy: {acc * 100:0.2f}%')
             print(
                 f'Validation dice: {val_loss:0.5f}, accuracy: {val_acc * 100:0.2f}%')
@@ -146,10 +142,13 @@ class MyModel():
         self.show_results(results)
         self.save_results(results)
 
-    def start_visualize(self):
+    def start_visualize(self, test_generator):
+        test_dataset = tf.data.Dataset.from_generator(
+            test_generator, (tf.float32, tf.float32))
+
         scan_mask = list()
 
-        for step, (images, labels) in enumerate(self.test_dataset):
+        for step, (images, labels) in enumerate(test_dataset):
             logits = self.model(images, training=False)
             preds = tf.dtypes.cast(logits > 0.5, tf.int8)
             scan_mask.append(preds.numpy().astype(np.int8))
