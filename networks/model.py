@@ -5,11 +5,13 @@ import pandas as pd
 
 import tensorflow as tf
 import tensorflow_addons as tfa
+from tensorflow import keras
 
 from networks import network
 from networks import losses
 from networks import optimizers
 from networks import metrics
+from networks.callbacks import CallbackManager
 from utils.image import cubify_scan, augment_xy
 from utils.vtk import render_mesh
 
@@ -19,13 +21,16 @@ AUTOTUNE = tf.data.experimental.AUTOTUNE
 class MyModel():
     def __init__(
         self,
+        callbacks=[],
         checkpoint_dir='output/models',
         seed=5
     ):
         tf.random.set_seed(seed)
+
         self.train_dataset = None
         self.valid_dataset = None
         self.test_dataset = None
+
         self.checkpoint_dir = checkpoint_dir
 
     def setup_model(
@@ -94,7 +99,7 @@ class MyModel():
         if verbose:
             self.model.summary()
 
-    def start_train(self, epochs):
+    def start_train(self, epochs, callbacks):
         """Starts training process
         """
         if not self.train_dataset:
@@ -103,14 +108,26 @@ class MyModel():
 
         best_result = np.Inf
         trials = 0
+        metric_loss = tf.keras.metrics.Mean('loss', dtype=tf.float32)
+
+        # Include standard callbacks
+        callbacks = CallbackManager(
+            model=self.model,
+            callbacks=[
+                keras.callbacks.ModelCheckpoint(
+                    f'{self.checkpoint_path}.h5', monitor='loss', verbose=1, save_best_only=True)
+            ])
+
+        callbacks.train_start()
 
         for epoch in range(epochs):
+            callbacks.epoch_start(epoch)
+
             start = time.time()
 
             alpha_step = 1 / epochs
             alpha = 1 - epoch * alpha_step
 
-            metric_loss = tf.keras.metrics.Mean('loss', dtype=tf.float32)
             metric_acc = tf.keras.metrics.BinaryAccuracy('acc')
 
             for step, (images, labels) in enumerate(self.train_dataset):
@@ -118,8 +135,8 @@ class MyModel():
                 metric_acc(labels, logits)
                 metric_loss(loss)
 
-                if step % 4 == 0:
-                    print(f'Train batch number: {step}...', end="\r")
+                # if step % 4 == 0:
+                #     print(f'Train batch number: {step}...', end="\r")
 
             loss = metric_loss.result().numpy()
             acc = metric_acc.result().numpy()
@@ -131,27 +148,31 @@ class MyModel():
 
             end = time.time()
 
-            print(
-                f'Train time for epoch {epoch + 1} / {epochs}: {end - start:.3f}s')
-            print(f'Train loss: {loss:0.5f}, accuracy: {acc * 100:0.2f}%')
-            print(
-                f'Validation dice: {val_loss:0.5f}, accuracy: {val_acc * 100:0.2f}%')
+            # print(
+            #     f'Train time for epoch {epoch + 1} / {epochs}: {end - start:.3f}s')
+            # print(f'Train loss: {loss:0.5f}, accuracy: {acc * 100:0.2f}%')
+            # print(
+            #     f'Validation dice: {val_loss:0.5f}, accuracy: {val_acc * 100:0.2f}%')
 
-            if val_loss < best_result:
-                print(f'Model improved {best_result} -> {val_loss}')
-                best_result = val_loss
-                trials = 0
-                print(f'Saving checkpoint to: {self.checkpoint_path}.h5')
-                self.model.save(f'{self.checkpoint_path}.h5')
+            # if val_loss < best_result:
+            #     print(f'Model improved {best_result} -> {val_loss}')
+            #     best_result = val_loss
+            #     trials = 0
+            #     print(f'Saving checkpoint to: {self.checkpoint_path}.h5')
+            #     self.model.save(f'{self.checkpoint_path}.h5')
 
-            else:
-                print(f'No improvements from {best_result}. Trial {trials}.')
-                if trials == 25:
-                    print('Early stopping')
-                    break
-                trials += 1
+            # else:
+            #     print(f'No improvements from {best_result}. Trial {trials}.')
+            #     if trials == 25:
+            #         print('Early stopping')
+            #         break
+            #     trials += 1
 
-            print('-----------------------------------------------------------')
+            callbacks.epoch_end(epoch, loss)
+
+            # print('-----------------------------------------------------------')
+
+        callbacks.train_end()
 
     def start_evaluate(self):
         start = time.time()
@@ -207,25 +228,26 @@ class MyModel():
         return loss, logits
 
     def validate(self, alpha):
-        metric_val_loss = tf.keras.metrics.Mean('val_loss', dtype=tf.float32)
-        metric_val_acc = tf.keras.metrics.BinaryAccuracy('val_acc')
+        # metric_val_loss = tf.keras.metrics.Mean('val_loss', dtype=tf.float32)
+        # metric_val_acc = tf.keras.metrics.BinaryAccuracy('val_acc')
 
-        for step, (images, labels) in enumerate(self.valid_dataset):
-            logits = self.model(images, training=False)
+        # for step, (images, labels) in enumerate(self.valid_dataset):
+        #     logits = self.model(images, training=False)
 
-            metric_val_loss(losses.get('weighted_dice')(labels, logits))
-            metric_val_acc(labels, logits)
+        #     metric_val_loss(losses.get('weighted_dice')(labels, logits))
+        #     metric_val_acc(labels, logits)
 
-            if step % 4 == 0:
-                print(f'Validation batch number: {step}...', end="\r")
+        #     if step % 4 == 0:
+        #         print(f'Validation batch number: {step}...', end="\r")
 
-        res_val_loss = metric_val_loss.result().numpy()
-        res_val_acc = metric_val_acc.result().numpy()
+        # res_val_loss = metric_val_loss.result().numpy()
+        # res_val_acc = metric_val_acc.result().numpy()
 
-        metric_val_loss.reset_states()
-        metric_val_acc.reset_states()
+        # metric_val_loss.reset_states()
+        # metric_val_acc.reset_states()
 
-        return res_val_loss, res_val_acc
+        # return res_val_loss, res_val_acc
+        return 0, 0
 
     def evaluate(self):
         threshold = 0.5
@@ -259,8 +281,8 @@ class MyModel():
             for name in losses_names:
                 histories[name](losses.get(name)(labels, preds))
 
-            if step % 4 == 0:
-                print(f'Validation batch number: {step}...', end="\r")
+            # if step % 4 == 0:
+            #     print(f'Validation batch number: {step}...', end="\r")
 
         for name in metric_names + losses_names:
             results[name] = histories[name].result().numpy()
