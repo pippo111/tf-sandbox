@@ -23,9 +23,9 @@ class CallbackManager():
         for cb in self.callbacks:
             cb.on_epoch_begin(epoch)
 
-    def epoch_end(self, epoch, loss):
+    def epoch_end(self, epoch, logs):
         for cb in self.callbacks:
-            cb.on_epoch_end(epoch, logs={'loss': loss})
+            cb.on_epoch_end(epoch, logs=logs)
 
     def train_batch_start(self, batch):
         for cb in self.callbacks:

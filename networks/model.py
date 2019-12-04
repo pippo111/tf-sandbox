@@ -117,7 +117,7 @@ class MyModel():
             model=self.model,
             callbacks=[
                 keras.callbacks.ModelCheckpoint(
-                    f'{self.checkpoint_path}.h5', monitor='loss', save_best_only=True, verbose=1),
+                    f'{self.checkpoint_path}.h5', monitor='val_loss', save_best_only=True, verbose=1),
                 keras.callbacks.EarlyStopping(
                     monitor='loss', mode='min', patience=2, verbose=1),
                 TimerCallback(),
@@ -161,7 +161,7 @@ class MyModel():
             #     f'Validation dice: {val_loss:0.5f}, accuracy: {val_acc * 100:0.2f}%')
 
             logs = metrics_manager.epoch_end()
-            callbacks.epoch_end(epoch, loss)
+            callbacks.epoch_end(epoch, logs)
 
             if self.model.stop_training:
                 break
