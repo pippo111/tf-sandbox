@@ -11,7 +11,7 @@ from networks import network
 from networks import losses
 from networks import optimizers
 from networks import metrics
-from networks.callbacks import CallbackManager, TimerCallback
+from networks.callbacks import CallbackManager, TimerCallback, PrinterCallback
 from utils.image import cubify_scan, augment_xy
 from utils.vtk import render_mesh
 
@@ -110,8 +110,6 @@ class MyModel():
             raise Exception(
                 'No data to process. Make sure you have setup data generators.')
 
-        best_result = np.Inf
-        trials = 0
         metric_loss = tf.keras.metrics.Mean('loss', dtype=tf.float32)
 
         # Include standard callbacks
@@ -122,15 +120,15 @@ class MyModel():
                     f'{self.checkpoint_path}.h5', monitor='loss', save_best_only=True, verbose=1),
                 keras.callbacks.EarlyStopping(
                     monitor='loss', mode='min', patience=2, verbose=1),
-                TimerCallback()
+                TimerCallback(),
+                PrinterCallback(epochs, steps_per_epoch=len(
+                    list(self.train_dataset)))
             ])
 
         callbacks.train_start()
 
         for epoch in range(epochs):
             callbacks.epoch_start(epoch)
-
-            start = time.time()
 
             alpha_step = 1 / epochs
             alpha = 1 - epoch * alpha_step
@@ -156,8 +154,6 @@ class MyModel():
             metric_acc.reset_states()
 
             val_loss, val_acc = self.validate(alpha)
-
-            end = time.time()
 
             # print(
             #     f'Train time for epoch {epoch + 1} / {epochs}: {end - start:.3f}s')

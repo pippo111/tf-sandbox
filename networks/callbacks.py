@@ -58,7 +58,6 @@ class TimerCallback(keras.callbacks.Callback):
 
         total_time_s = int(round(self.total))
 
-        print('---')
         print(
             f'Total time: {str(timedelta(seconds=total_time_s))}, time per epoch: {epoch_avg:.2f}s')
 
@@ -81,3 +80,27 @@ class TimerCallback(keras.callbacks.Callback):
     def on_train_batch_end(self, batch, logs=None):
         self.batch_time = time.time() - self.batch_time
         self.batch_avg_metric(self.batch_time)
+
+
+class PrinterCallback(keras.callbacks.Callback):
+    def __init__(self, epochs, steps_per_epoch):
+        self.epochs = epochs
+        self.steps = steps_per_epoch
+
+    def on_train_begin(self):
+        pass
+
+    def on_train_end(self):
+        pass
+
+    def on_epoch_begin(self, epoch):
+        print(f'Epoch {epoch + 1} / {self.epochs}')
+
+    def on_epoch_end(self, epoch, logs=None):
+        print(f'--------------------------------------------------------------------------------------------------')
+
+    def on_train_batch_begin(self, batch):
+        print(f'Train batch {batch + 1} / {self.steps}', end='\r')
+
+    def on_train_batch_end(self, batch, logs=None):
+        pass
