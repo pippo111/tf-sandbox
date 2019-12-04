@@ -111,8 +111,6 @@ class MyModel():
             raise Exception(
                 'No data to process. Make sure you have setup data generators.')
 
-        metric_loss = tf.keras.metrics.Mean('loss', dtype=tf.float32)
-
         callbacks = CallbackManager(
             model=self.model,
             callbacks=[
@@ -136,25 +134,24 @@ class MyModel():
             alpha_step = 1 / epochs
             alpha = 1 - epoch * alpha_step
 
-            metric_acc = tf.keras.metrics.BinaryAccuracy('acc')
-
+            # train
             for step, (images, labels) in enumerate(self.train_dataset):
                 callbacks.train_batch_start(step)
 
                 loss, logits = self.train_step(images, labels, alpha)
-                metric_acc(labels, logits)
-                metric_loss(loss)
 
                 metrics_manager.train_batch_end(loss, labels, logits)
                 callbacks.train_batch_end(step)
 
-            loss = metric_loss.result().numpy()
-            acc = metric_acc.result().numpy()
+            # validate
+            for step, (images, labels) in enumerate(self.valid_dataset):
+                logits = self.model(images, training=False)
 
-            metric_loss.reset_states()
-            metric_acc.reset_states()
+                loss = losses.get('weighted_dice')(labels, logits)
 
-            val_loss, val_acc = self.validate(metrics_manager)
+                metrics_manager.test_batch_end(loss, labels, logits)
+                # if step % 4 == 0:
+                #     print(f'Validation batch number: {step}...', end="\r")
 
             # print(f'Train loss: {loss:0.5f}, accuracy: {acc * 100:0.2f}%')
             # print(
@@ -220,30 +217,6 @@ class MyModel():
             zip(grads, self.model.trainable_variables))
 
         return loss, logits
-
-    def validate(self, metrics_manager):
-        metric_val_loss = tf.keras.metrics.Mean('val_loss', dtype=tf.float32)
-        metric_val_acc = tf.keras.metrics.BinaryAccuracy('val_acc')
-
-        for step, (images, labels) in enumerate(self.valid_dataset):
-            logits = self.model(images, training=False)
-
-            metric_val_loss(losses.get('weighted_dice')(labels, logits))
-            metric_val_acc(labels, logits)
-
-            loss = losses.get('weighted_dice')(labels, logits)
-
-            metrics_manager.test_batch_end(loss, labels, logits)
-            # if step % 4 == 0:
-            #     print(f'Validation batch number: {step}...', end="\r")
-
-        res_val_loss = metric_val_loss.result().numpy()
-        res_val_acc = metric_val_acc.result().numpy()
-
-        metric_val_loss.reset_states()
-        metric_val_acc.reset_states()
-
-        return res_val_loss, res_val_acc
 
     def evaluate(self):
         threshold = 0.5
