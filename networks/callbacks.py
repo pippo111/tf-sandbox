@@ -35,15 +35,20 @@ class CallbackManager():
         for cb in self.callbacks:
             cb.on_train_batch_end(batch)
 
+    def test_batch_start(self, batch):
+        for cb in self.callbacks:
+            cb.on_test_batch_begin(batch)
+
+    def test_batch_end(self, batch):
+        for cb in self.callbacks:
+            cb.on_test_batch_end(batch)
+
 
 class TimerCallback(keras.callbacks.Callback):
     def __init__(self):
-        self.batch_avg_metric = keras.metrics.Mean(
-            'timer_avg_batch', dtype=tf.float32)
         self.epoch_avg_metric = keras.metrics.Mean(
             'timer_avg_epoch', dtype=tf.float32)
 
-        self.batch_time = 0
         self.epoch_time = 0
         self.train_time = 0
 
@@ -68,24 +73,15 @@ class TimerCallback(keras.callbacks.Callback):
         self.epoch_time = time.time() - self.epoch_time
         self.epoch_avg_metric(self.epoch_time)
 
-        batch_avg = self.batch_avg_metric.result().numpy()
-        self.batch_avg_metric.reset_states()
-
         print(
-            f'Epoch time: {self.epoch_time:.2f}s, time per batch: {batch_avg:.2f}s')
-
-    def on_train_batch_begin(self, batch):
-        self.batch_time = time.time()
-
-    def on_train_batch_end(self, batch, logs=None):
-        self.batch_time = time.time() - self.batch_time
-        self.batch_avg_metric(self.batch_time)
+            f'Epoch time: {self.epoch_time:.2f}s')
 
 
 class BasePrinterCallback(keras.callbacks.Callback):
-    def __init__(self, epochs, steps_per_epoch):
+    def __init__(self, epochs, steps_per_train_epoch, steps_per_test_epoch):
         self.epochs = epochs
-        self.steps = steps_per_epoch
+        self.steps = steps_per_train_epoch
+        self.val_steps = steps_per_test_epoch
 
     def on_train_begin(self):
         pass
@@ -102,29 +98,11 @@ class BasePrinterCallback(keras.callbacks.Callback):
     def on_train_batch_begin(self, batch):
         print(f'Train batch {batch + 1} / {self.steps}', end='\r')
 
-    def on_train_batch_end(self, batch, logs=None):
-        pass
+    def on_test_batch_begin(self, batch):
+        print(f'Validation batch {batch + 1} / {self.val_steps}', end='\r')
 
 
 class MetricPrinterCallback(keras.callbacks.Callback):
     def __init__(self, epochs, steps_per_epoch):
         self.epochs = epochs
         self.steps = steps_per_epoch
-
-    def on_train_begin(self):
-        pass
-
-    def on_train_end(self):
-        pass
-
-    def on_epoch_begin(self, epoch):
-        print(f'Epoch {epoch + 1} / {self.epochs}')
-
-    def on_epoch_end(self, epoch, logs=None):
-        print(f'--------------------------------------------------------------------------------------------------')
-
-    def on_train_batch_begin(self, batch):
-        print(f'Train batch {batch + 1} / {self.steps}', end='\r')
-
-    def on_train_batch_end(self, batch, logs=None):
-        pass

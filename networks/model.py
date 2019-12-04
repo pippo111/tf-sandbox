@@ -119,8 +119,10 @@ class MyModel():
                 keras.callbacks.EarlyStopping(
                     monitor='loss', mode='min', patience=2, verbose=1),
                 TimerCallback(),
-                BasePrinterCallback(epochs, steps_per_epoch=len(
-                    list(self.train_dataset)))
+                BasePrinterCallback(
+                    epochs,
+                    steps_per_train_epoch=len(list(self.train_dataset)),
+                    steps_per_test_epoch=len(list(self.valid_dataset)))
             ])
 
         metrics_manager = MetricManager(
@@ -145,13 +147,13 @@ class MyModel():
 
             # validate
             for step, (images, labels) in enumerate(self.valid_dataset):
-                logits = self.model(images, training=False)
+                callbacks.test_batch_start(step)
 
+                logits = self.model(images, training=False)
                 loss = losses.get('weighted_dice')(labels, logits)
 
                 metrics_manager.test_batch_end(loss, labels, logits)
-                # if step % 4 == 0:
-                #     print(f'Validation batch number: {step}...', end="\r")
+                callbacks.test_batch_end(step)
 
             # print(f'Train loss: {loss:0.5f}, accuracy: {acc * 100:0.2f}%')
             # print(
