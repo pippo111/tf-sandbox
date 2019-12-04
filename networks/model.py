@@ -11,7 +11,8 @@ from networks import network
 from networks import losses
 from networks import optimizers
 from networks import metrics
-from networks.callbacks import CallbackManager, TimerCallback, PrinterCallback
+from networks.callbacks import CallbackManager, TimerCallback, BasePrinterCallback
+from networks.metrics import MetricManager
 from utils.image import cubify_scan, augment_xy
 from utils.vtk import render_mesh
 
@@ -112,7 +113,6 @@ class MyModel():
 
         metric_loss = tf.keras.metrics.Mean('loss', dtype=tf.float32)
 
-        # Include standard callbacks
         callbacks = CallbackManager(
             model=self.model,
             callbacks=[
@@ -121,9 +121,12 @@ class MyModel():
                 keras.callbacks.EarlyStopping(
                     monitor='loss', mode='min', patience=2, verbose=1),
                 TimerCallback(),
-                PrinterCallback(epochs, steps_per_epoch=len(
+                BasePrinterCallback(epochs, steps_per_epoch=len(
                     list(self.train_dataset)))
             ])
+
+        metrics_manager = MetricManager(
+            metrics=['f1score', 'fp'])
 
         callbacks.train_start()
 
@@ -136,16 +139,14 @@ class MyModel():
             metric_acc = tf.keras.metrics.BinaryAccuracy('acc')
 
             for step, (images, labels) in enumerate(self.train_dataset):
-                callbacks.batch_start(step)
+                callbacks.train_batch_start(step)
 
                 loss, logits = self.train_step(images, labels, alpha)
                 metric_acc(labels, logits)
                 metric_loss(loss)
 
-                # if step % 4 == 0:
-                #     print(f'Train batch number: {step}...', end="\r")
-
-                callbacks.batch_end(step, loss)
+                metrics_manager.train_batch_end(loss, labels, logits)
+                callbacks.train_batch_end(step)
 
             loss = metric_loss.result().numpy()
             acc = metric_acc.result().numpy()
@@ -153,34 +154,17 @@ class MyModel():
             metric_loss.reset_states()
             metric_acc.reset_states()
 
-            val_loss, val_acc = self.validate(alpha)
+            val_loss, val_acc = self.validate(metrics_manager)
 
-            # print(
-            #     f'Train time for epoch {epoch + 1} / {epochs}: {end - start:.3f}s')
             # print(f'Train loss: {loss:0.5f}, accuracy: {acc * 100:0.2f}%')
             # print(
             #     f'Validation dice: {val_loss:0.5f}, accuracy: {val_acc * 100:0.2f}%')
 
-            # if val_loss < best_result:
-            #     print(f'Model improved {best_result} -> {val_loss}')
-            #     best_result = val_loss
-            #     trials = 0
-            #     print(f'Saving checkpoint to: {self.checkpoint_path}.h5')
-            #     self.model.save(f'{self.checkpoint_path}.h5')
-
-            # else:
-            #     print(f'No improvements from {best_result}. Trial {trials}.')
-            #     if trials == 25:
-            #         print('Early stopping')
-            #         break
-            #     trials += 1
-
+            logs = metrics_manager.epoch_end()
             callbacks.epoch_end(epoch, loss)
 
             if self.model.stop_training:
                 break
-
-            # print('-----------------------------------------------------------')
 
         callbacks.train_end()
 
@@ -237,27 +221,29 @@ class MyModel():
 
         return loss, logits
 
-    def validate(self, alpha):
-        # metric_val_loss = tf.keras.metrics.Mean('val_loss', dtype=tf.float32)
-        # metric_val_acc = tf.keras.metrics.BinaryAccuracy('val_acc')
+    def validate(self, metrics_manager):
+        metric_val_loss = tf.keras.metrics.Mean('val_loss', dtype=tf.float32)
+        metric_val_acc = tf.keras.metrics.BinaryAccuracy('val_acc')
 
-        # for step, (images, labels) in enumerate(self.valid_dataset):
-        #     logits = self.model(images, training=False)
+        for step, (images, labels) in enumerate(self.valid_dataset):
+            logits = self.model(images, training=False)
 
-        #     metric_val_loss(losses.get('weighted_dice')(labels, logits))
-        #     metric_val_acc(labels, logits)
+            metric_val_loss(losses.get('weighted_dice')(labels, logits))
+            metric_val_acc(labels, logits)
 
-        #     if step % 4 == 0:
-        #         print(f'Validation batch number: {step}...', end="\r")
+            loss = losses.get('weighted_dice')(labels, logits)
 
-        # res_val_loss = metric_val_loss.result().numpy()
-        # res_val_acc = metric_val_acc.result().numpy()
+            metrics_manager.test_batch_end(loss, labels, logits)
+            # if step % 4 == 0:
+            #     print(f'Validation batch number: {step}...', end="\r")
 
-        # metric_val_loss.reset_states()
-        # metric_val_acc.reset_states()
+        res_val_loss = metric_val_loss.result().numpy()
+        res_val_acc = metric_val_acc.result().numpy()
 
-        # return res_val_loss, res_val_acc
-        return 0, 0
+        metric_val_loss.reset_states()
+        metric_val_acc.reset_states()
+
+        return res_val_loss, res_val_acc
 
     def evaluate(self):
         threshold = 0.5

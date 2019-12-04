@@ -27,13 +27,13 @@ class CallbackManager():
         for cb in self.callbacks:
             cb.on_epoch_end(epoch, logs={'loss': loss})
 
-    def batch_start(self, batch):
+    def train_batch_start(self, batch):
         for cb in self.callbacks:
             cb.on_train_batch_begin(batch)
 
-    def batch_end(self, batch, loss):
+    def train_batch_end(self, batch):
         for cb in self.callbacks:
-            cb.on_train_batch_end(batch, logs={'loss': loss})
+            cb.on_train_batch_end(batch)
 
 
 class TimerCallback(keras.callbacks.Callback):
@@ -82,7 +82,31 @@ class TimerCallback(keras.callbacks.Callback):
         self.batch_avg_metric(self.batch_time)
 
 
-class PrinterCallback(keras.callbacks.Callback):
+class BasePrinterCallback(keras.callbacks.Callback):
+    def __init__(self, epochs, steps_per_epoch):
+        self.epochs = epochs
+        self.steps = steps_per_epoch
+
+    def on_train_begin(self):
+        pass
+
+    def on_train_end(self):
+        pass
+
+    def on_epoch_begin(self, epoch):
+        print(f'Epoch {epoch + 1} / {self.epochs}')
+
+    def on_epoch_end(self, epoch, logs=None):
+        print(f'--------------------------------------------------------------------------------------------------')
+
+    def on_train_batch_begin(self, batch):
+        print(f'Train batch {batch + 1} / {self.steps}', end='\r')
+
+    def on_train_batch_end(self, batch, logs=None):
+        pass
+
+
+class MetricPrinterCallback(keras.callbacks.Callback):
     def __init__(self, epochs, steps_per_epoch):
         self.epochs = epochs
         self.steps = steps_per_epoch
