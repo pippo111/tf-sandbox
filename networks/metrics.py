@@ -63,5 +63,4 @@ class MetricManager():
             self.logs.update({name: res})
             metric.reset_states()
 
-        print(self.logs)
         return self.logs

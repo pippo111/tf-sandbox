@@ -11,7 +11,7 @@ from networks import network
 from networks import losses
 from networks import optimizers
 from networks import metrics
-from networks.callbacks import CallbackManager, TimerCallback, BasePrinterCallback
+from networks.callbacks import CallbackManager, TimerCallback, BasePrinterCallback, MetricPrinterCallback
 from networks.metrics import MetricManager
 from utils.image import cubify_scan, augment_xy
 from utils.vtk import render_mesh
@@ -118,6 +118,7 @@ class MyModel():
                     f'{self.checkpoint_path}.h5', monitor='val_loss', save_best_only=True, verbose=1),
                 keras.callbacks.EarlyStopping(
                     monitor='loss', mode='min', patience=2, verbose=1),
+                MetricPrinterCallback(),
                 TimerCallback(),
                 BasePrinterCallback(
                     epochs,
@@ -154,10 +155,6 @@ class MyModel():
 
                 metrics_manager.test_batch_end(loss, labels, logits)
                 callbacks.test_batch_end(step)
-
-            # print(f'Train loss: {loss:0.5f}, accuracy: {acc * 100:0.2f}%')
-            # print(
-            #     f'Validation dice: {val_loss:0.5f}, accuracy: {val_acc * 100:0.2f}%')
 
             logs = metrics_manager.epoch_end()
             callbacks.epoch_end(epoch, logs)

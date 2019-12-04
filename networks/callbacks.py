@@ -98,11 +98,32 @@ class BasePrinterCallback(keras.callbacks.Callback):
     def on_train_batch_begin(self, batch):
         print(f'Train batch {batch + 1} / {self.steps}', end='\r')
 
+    def on_train_batch_end(self, batch):
+        print('                                       ', end='\r')
+
     def on_test_batch_begin(self, batch):
         print(f'Validation batch {batch + 1} / {self.val_steps}', end='\r')
 
+    def on_test_batch_end(self, batch):
+        print('                                                ', end='\r')
+
 
 class MetricPrinterCallback(keras.callbacks.Callback):
-    def __init__(self, epochs, steps_per_epoch):
-        self.epochs = epochs
-        self.steps = steps_per_epoch
+    def __init__(self, val_score_label='Val. weighted dice'):
+        self.val_score_label = val_score_label
+
+    def on_epoch_end(self, epoch, logs=None):
+        loss = logs['loss']
+        val_loss = logs['val_loss']
+        acc = logs['acc']
+        val_acc = logs['val_acc']
+
+        print(f'Train loss: {loss:0.5f}, accuracy: {acc * 100:0.2f}%')
+        print(
+            f'{self.val_score_label}: {val_loss:0.5f}, accuracy: {val_acc * 100:0.2f}%')
+
+        for key, value in logs.items():
+            if key not in ['loss', 'val_loss', 'acc', 'val_acc']:
+                print(f'{key}: {value}')
+
+        print('')
