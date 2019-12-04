@@ -11,7 +11,7 @@ from networks import network
 from networks import losses
 from networks import optimizers
 from networks import metrics
-from networks.callbacks import CallbackManager
+from networks.callbacks import CallbackManager, TimerCallback
 from utils.image import cubify_scan, augment_xy
 from utils.vtk import render_mesh
 
@@ -88,6 +88,10 @@ class MyModel():
             input_shape=input_shape
         )
 
+        self.model.stop_training = False
+        self.model.compile(optimizer=self.optimizer_fn,
+                           loss=self.loss_fn)
+
         if verbose:
             self.model.summary()
 
@@ -115,7 +119,10 @@ class MyModel():
             model=self.model,
             callbacks=[
                 keras.callbacks.ModelCheckpoint(
-                    f'{self.checkpoint_path}.h5', monitor='loss', verbose=1, save_best_only=True)
+                    f'{self.checkpoint_path}.h5', monitor='loss', save_best_only=True, verbose=1),
+                keras.callbacks.EarlyStopping(
+                    monitor='loss', mode='min', patience=2, verbose=1),
+                TimerCallback()
             ])
 
         callbacks.train_start()
@@ -131,12 +138,16 @@ class MyModel():
             metric_acc = tf.keras.metrics.BinaryAccuracy('acc')
 
             for step, (images, labels) in enumerate(self.train_dataset):
+                callbacks.batch_start(step)
+
                 loss, logits = self.train_step(images, labels, alpha)
                 metric_acc(labels, logits)
                 metric_loss(loss)
 
                 # if step % 4 == 0:
                 #     print(f'Train batch number: {step}...', end="\r")
+
+                callbacks.batch_end(step, loss)
 
             loss = metric_loss.result().numpy()
             acc = metric_acc.result().numpy()
@@ -169,6 +180,9 @@ class MyModel():
             #     trials += 1
 
             callbacks.epoch_end(epoch, loss)
+
+            if self.model.stop_training:
+                break
 
             # print('-----------------------------------------------------------')
 
