@@ -6,6 +6,7 @@ from networks import losses
 
 def get(name):
     metric = dict(
+        accuracy=tf.keras.metrics.BinaryAccuracy('accuracy'),
         dice=DiceScore('dice', dtype=tf.float32),
         weighted_dice=WeightedDiceScore('weighted_dice', dtype=tf.float32),
         fp=tf.keras.metrics.FalsePositives(name='fp', dtype=tf.float32),
@@ -20,8 +21,9 @@ def get(name):
 
 
 class MetricManager():
-    def __init__(self, metrics=[]):
+    def __init__(self, metrics=[], training=False):
         self.logs = {}
+        self.training = training
 
         self.std_metrics = {
             'loss': tf.keras.metrics.Mean('loss', dtype=tf.float32),
@@ -32,23 +34,26 @@ class MetricManager():
 
         self.metrics = [get(name) for name in metrics]
 
-    def train_batch_end(self, loss, labels, logits):
+    def train_batch_end(self, labels, logits, loss):
         self.std_metrics['loss'](loss)
         self.std_metrics['acc'](labels, logits)
 
-    def test_batch_end(self, loss, labels, logits):
-        self.std_metrics['val_loss'](loss)
+    def test_batch_end(self, labels, logits, loss=None):
+        if self.training:
+            self.std_metrics['val_loss'](loss)
+
         self.std_metrics['val_acc'](labels, logits)
 
         for metric in self.metrics:
             metric(labels, logits)
 
     def epoch_end(self):
-        for name, metric in self.std_metrics.items():
-            res = metric.result().numpy()
+        if self.training:
+            for name, metric in self.std_metrics.items():
+                res = metric.result().numpy()
 
-            self.logs.update({name: res})
-            metric.reset_states()
+                self.logs.update({name: res})
+                metric.reset_states()
 
         for metric in self.metrics:
             res = metric.result().numpy()

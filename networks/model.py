@@ -1,5 +1,4 @@
 import numpy as np
-import time
 import os
 import pandas as pd
 
@@ -118,7 +117,7 @@ class MyModel():
                     f'{self.checkpoint_path}.h5', monitor='weighted_dice', save_best_only=True, verbose=1),
                 keras.callbacks.EarlyStopping(
                     monitor='loss', mode='min', patience=2, verbose=1),
-                MetricPrinterCallback(),
+                MetricPrinterCallback(training=True),
                 TimerCallback(),
                 BasePrinterCallback(
                     epochs,
@@ -126,7 +125,8 @@ class MyModel():
                     steps_per_test_epoch=len(list(self.valid_dataset)))
             ])
 
-        metrics_manager = MetricManager(['dice', 'weighted_dice'])
+        metrics_manager = MetricManager(
+            ['dice', 'weighted_dice'], training=True)
 
         callbacks.train_start()
 
@@ -142,7 +142,7 @@ class MyModel():
 
                 loss, logits = self.train_step(images, labels, alpha)
 
-                metrics_manager.train_batch_end(loss, labels, logits)
+                metrics_manager.train_batch_end(labels, logits, loss)
                 callbacks.train_batch_end(step)
 
             # validate
@@ -156,7 +156,7 @@ class MyModel():
                 else:
                     loss = self.loss_fn(labels, logits)
 
-                metrics_manager.test_batch_end(loss, labels, logits)
+                metrics_manager.test_batch_end(labels, logits, loss)
                 callbacks.test_batch_end(step)
 
             logs = metrics_manager.epoch_end()
@@ -168,14 +168,39 @@ class MyModel():
         callbacks.train_end()
 
     def start_evaluate(self):
-        start = time.time()
+        threshold = 0.5
 
-        results = self.evaluate()
+        callbacks = CallbackManager(
+            model=self.model,
+            callbacks=[
+                MetricPrinterCallback(),
+                BasePrinterCallback(
+                    steps_per_test_epoch=len(list(self.valid_dataset)))
+            ])
 
-        end = time.time()
+        metrics_manager = MetricManager([
+            'accuracy',
+            'dice',
+            'weighted_dice',
+            'fp',
+            'fn',
+            'precision',
+            'recall',
+            'f1score'
+        ])
 
-        self.show_results(results)
-        self.save_results(results)
+        for step, (images, labels) in enumerate(self.valid_dataset):
+            callbacks.test_batch_start(step)
+
+            logits = self.model(images, training=False)
+
+            metrics_manager.test_batch_end(labels, logits)
+            callbacks.test_batch_end(step)
+
+        logs = metrics_manager.epoch_end()
+        callbacks.epoch_end(0, logs)
+
+        self.save_results(logs)
 
     def start_visualize(self, test_generator):
         test_dataset = tf.data.Dataset.from_generator(
@@ -219,59 +244,6 @@ class MyModel():
             zip(grads, self.model.trainable_variables))
 
         return loss, logits
-
-    def evaluate(self):
-        threshold = 0.5
-
-        metric_names = [
-            'accuracy',
-            'fp',
-            'fn',
-            'precision',
-            'recall',
-            'f1score'
-        ]
-        losses_names = [
-            'binary',
-            'dice',
-            'weighted_dice'
-        ]
-
-        results = dict()
-        histories = dict()
-
-        for name in metric_names + losses_names:
-            histories[name] = metrics.get(name)
-
-        for step, (images, labels) in enumerate(self.valid_dataset):
-            logits = self.model(images, training=False)
-            preds = tf.dtypes.cast(logits > threshold, tf.float32)
-
-            for name in metric_names:
-                histories[name](labels, preds)
-            for name in losses_names:
-                histories[name](losses.get(name)(labels, preds))
-
-            # if step % 4 == 0:
-            #     print(f'Validation batch number: {step}...', end="\r")
-
-        for name in metric_names + losses_names:
-            results[name] = histories[name].result().numpy()
-            histories[name].reset_states()
-
-        return results
-
-    def show_results(self, results):
-        print(
-            f'Validation loss: {results["binary"]}, accuracy: {results["accuracy"] * 100:0.3f}%')
-        print(
-            f'Validation dice: {results["dice"]}, weighted: {results["weighted_dice"]}')
-        print(
-            f'False positives: {results["fp"]}, false negatives: {results["fn"]}')
-        print(
-            f'Precision: {results["precision"]}, recall: {results["recall"]}')
-        print(f'F1 Score: {results["f1score"]}')
-        print('-----------------------------------------------------------')
 
     def save_results(self, results):
         csv_file = f'{self.checkpoint_dir}/results.csv'

@@ -78,7 +78,7 @@ class TimerCallback(keras.callbacks.Callback):
 
 
 class BasePrinterCallback(keras.callbacks.Callback):
-    def __init__(self, epochs, steps_per_train_epoch, steps_per_test_epoch):
+    def __init__(self, epochs=0, steps_per_train_epoch=0, steps_per_test_epoch=0):
         self.epochs = epochs
         self.steps = steps_per_train_epoch
         self.val_steps = steps_per_test_epoch
@@ -109,15 +109,19 @@ class BasePrinterCallback(keras.callbacks.Callback):
 
 
 class MetricPrinterCallback(keras.callbacks.Callback):
-    def on_epoch_end(self, epoch, logs=None):
-        loss = logs['loss']
-        val_loss = logs['val_loss']
-        acc = logs['acc']
-        val_acc = logs['val_acc']
+    def __init__(self, training=False):
+        self.training = training
 
-        print(f'Train loss: {loss:0.5f}, accuracy: {acc * 100:0.2f}%')
-        print(
-            f'Validation loss: {val_loss:0.5f}, accuracy: {val_acc * 100:0.2f}%')
+    def on_epoch_end(self, epoch, logs=None):
+        if self.training:
+            loss = logs['loss']
+            val_loss = logs['val_loss']
+            acc = logs['acc']
+            val_acc = logs['val_acc']
+
+            print(f'Train loss: {loss:0.5f}, accuracy: {acc * 100:0.2f}%')
+            print(
+                f'Validation loss: {val_loss:0.5f}, accuracy: {val_acc * 100:0.2f}%')
 
         for key, value in logs.items():
             if key not in ['loss', 'val_loss', 'acc', 'val_acc']:
