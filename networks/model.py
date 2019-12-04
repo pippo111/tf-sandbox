@@ -115,7 +115,7 @@ class MyModel():
             model=self.model,
             callbacks=[
                 keras.callbacks.ModelCheckpoint(
-                    f'{self.checkpoint_path}.h5', monitor='val_loss', save_best_only=True, verbose=1),
+                    f'{self.checkpoint_path}.h5', monitor='weighted_dice', save_best_only=True, verbose=1),
                 keras.callbacks.EarlyStopping(
                     monitor='loss', mode='min', patience=2, verbose=1),
                 MetricPrinterCallback(),
@@ -126,8 +126,7 @@ class MyModel():
                     steps_per_test_epoch=len(list(self.valid_dataset)))
             ])
 
-        metrics_manager = MetricManager(
-            metrics=['f1score', 'fp'])
+        metrics_manager = MetricManager(['dice', 'weighted_dice'])
 
         callbacks.train_start()
 
@@ -151,7 +150,11 @@ class MyModel():
                 callbacks.test_batch_start(step)
 
                 logits = self.model(images, training=False)
-                loss = losses.get('weighted_dice')(labels, logits)
+
+                if self.loss_name.startswith('boundary_'):
+                    loss = self.loss_fn(alpha)(labels, logits)
+                else:
+                    loss = self.loss_fn(labels, logits)
 
                 metrics_manager.test_batch_end(loss, labels, logits)
                 callbacks.test_batch_end(step)

@@ -6,11 +6,8 @@ from networks import losses
 
 def get(name):
     metric = dict(
-        acc=tf.keras.metrics.BinaryAccuracy('acc'),
-        val_acc=tf.keras.metrics.BinaryAccuracy('val_acc'),
-        binary=tf.keras.metrics.Mean('bce_loss', dtype=tf.float32),
-        dice=tf.keras.metrics.Mean('dice_loss', dtype=tf.float32),
-        weighted_dice=tf.keras.metrics.Mean('weighted_dice', dtype=tf.float32),
+        dice=DiceScore('dice', dtype=tf.float32),
+        weighted_dice=WeightedDiceScore('weighted_dice', dtype=tf.float32),
         fp=tf.keras.metrics.FalsePositives(name='fp', dtype=tf.float32),
         fn=tf.keras.metrics.FalseNegatives(name='fn', dtype=tf.float32),
         precision=tf.keras.metrics.Precision(name='precision'),
@@ -23,9 +20,9 @@ def get(name):
 
 
 class MetricManager():
-    def __init__(self, metrics):
+    def __init__(self, metrics=[]):
         self.logs = {}
-        # loss, acc, val_loss, val_acc
+
         self.std_metrics = {
             'loss': tf.keras.metrics.Mean('loss', dtype=tf.float32),
             'val_loss': tf.keras.metrics.Mean('val_loss', dtype=tf.float32),
@@ -38,9 +35,6 @@ class MetricManager():
     def train_batch_end(self, loss, labels, logits):
         self.std_metrics['loss'](loss)
         self.std_metrics['acc'](labels, logits)
-
-        for metric in self.metrics:
-            metric(labels, logits)
 
     def test_batch_end(self, loss, labels, logits):
         self.std_metrics['val_loss'](loss)
@@ -64,3 +58,38 @@ class MetricManager():
             metric.reset_states()
 
         return self.logs
+
+
+class DiceScore(tf.keras.metrics.Metric):
+
+    def __init__(self, name='dice', **kwargs):
+        super(DiceScore, self).__init__(name=name, **kwargs)
+        self.avg_score = tf.keras.metrics.Mean('dice', dtype=tf.float32)
+
+    def update_state(self, y_true, y_pred):
+        loss = losses.get('dice')(y_true, y_pred)
+        self.avg_score(loss)
+
+    def result(self):
+        return self.avg_score.result()
+
+    def reset_states(self):
+        self.avg_score.reset_states()
+
+
+class WeightedDiceScore(tf.keras.metrics.Metric):
+
+    def __init__(self, name='weighted_dice', **kwargs):
+        super(WeightedDiceScore, self).__init__(name=name, **kwargs)
+        self.avg_score = tf.keras.metrics.Mean(
+            'weighted_dice', dtype=tf.float32)
+
+    def update_state(self, y_true, y_pred):
+        loss = losses.get('weighted_dice')(y_true, y_pred)
+        self.avg_score(loss)
+
+    def result(self):
+        return self.avg_score.result()
+
+    def reset_states(self):
+        self.avg_score.reset_states()

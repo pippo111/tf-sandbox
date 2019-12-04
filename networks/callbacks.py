@@ -109,9 +109,6 @@ class BasePrinterCallback(keras.callbacks.Callback):
 
 
 class MetricPrinterCallback(keras.callbacks.Callback):
-    def __init__(self, val_score_label='Val. weighted dice'):
-        self.val_score_label = val_score_label
-
     def on_epoch_end(self, epoch, logs=None):
         loss = logs['loss']
         val_loss = logs['val_loss']
@@ -120,7 +117,7 @@ class MetricPrinterCallback(keras.callbacks.Callback):
 
         print(f'Train loss: {loss:0.5f}, accuracy: {acc * 100:0.2f}%')
         print(
-            f'{self.val_score_label}: {val_loss:0.5f}, accuracy: {val_acc * 100:0.2f}%')
+            f'Validation loss: {val_loss:0.5f}, accuracy: {val_acc * 100:0.2f}%')
 
         for key, value in logs.items():
             if key not in ['loss', 'val_loss', 'acc', 'val_acc']:
