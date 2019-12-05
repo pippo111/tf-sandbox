@@ -46,14 +46,14 @@ class MyModel():
         if train_generator:
             self.train_dataset = tf.data.Dataset.from_generator(
                 train_generator, (tf.float32, tf.float32))
-            self.train_dataset = self.train_dataset.cache()
+            # self.train_dataset = self.train_dataset.cache()
             self.train_dataset = self.train_dataset.prefetch(
                 buffer_size=AUTOTUNE)
 
         if valid_generator:
             self.valid_dataset = tf.data.Dataset.from_generator(
                 valid_generator, (tf.float32, tf.float32))
-            self.valid_dataset = self.valid_dataset.cache()
+            # self.valid_dataset = self.valid_dataset.cache()
             self.valid_dataset = self.valid_dataset.prefetch(
                 buffer_size=AUTOTUNE)
 
@@ -103,7 +103,7 @@ class MyModel():
         if verbose:
             self.model.summary()
 
-    def start_train(self, epochs, callbacks):
+    def start_train(self, epochs):
         """Starts training process
         """
         if not self.train_dataset:
@@ -122,7 +122,7 @@ class MyModel():
                 BasePrinterCallback(epochs)
             ])
 
-        metrics_manager = MetricManager(
+        metrics = MetricManager(
             ['dice', 'weighted_dice'], training=True)
 
         callbacks.train_start()
@@ -139,7 +139,7 @@ class MyModel():
 
                 loss, logits = self.train_step(images, labels, alpha)
 
-                metrics_manager.train_batch_end(labels, logits, loss)
+                metrics.train_batch_end(labels, logits, loss)
                 callbacks.train_batch_end(step)
 
             # validate
@@ -153,10 +153,10 @@ class MyModel():
                 else:
                     loss = self.loss_fn(labels, logits)
 
-                metrics_manager.test_batch_end(labels, logits, loss)
+                metrics.test_batch_end(labels, logits, loss)
                 callbacks.test_batch_end(step)
 
-            logs = metrics_manager.epoch_end()
+            logs = metrics.epoch_end()
             callbacks.epoch_end(epoch, logs)
 
             if self.model.stop_training:
@@ -174,7 +174,7 @@ class MyModel():
                 BasePrinterCallback()
             ])
 
-        metrics_manager = MetricManager([
+        metrics = MetricManager([
             'accuracy',
             'dice',
             'weighted_dice',
@@ -190,10 +190,10 @@ class MyModel():
 
             logits = self.model(images, training=False)
 
-            metrics_manager.test_batch_end(labels, logits)
+            metrics.test_batch_end(labels, logits)
             callbacks.test_batch_end(step)
 
-        logs = metrics_manager.epoch_end()
+        logs = metrics.epoch_end()
         callbacks.epoch_end(0, logs)
 
         self.save_results(logs)

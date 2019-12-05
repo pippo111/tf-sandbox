@@ -30,7 +30,7 @@ for model in models:
                           input_shape=tuple(setup['input_shape']),
                           verbose=1)
 
-    my_model.start_train(epochs=setup['epochs'], callbacks=[])
+    my_model.start_train(epochs=setup['epochs'])
 
     my_model.load_model(verbose=1)
 
