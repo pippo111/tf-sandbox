@@ -100,6 +100,7 @@ class BasePrinterCallback(keras.callbacks.Callback):
         if not self.counted:
             self.steps = self.batch_counter
             self.val_steps = self.val_batch_counter
+            self.counted = True
         print(f'--------------------------------------------------------------------------------------------------')
 
     def on_train_batch_begin(self, batch):
