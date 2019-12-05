@@ -115,8 +115,8 @@ class MyModel():
             callbacks=[
                 keras.callbacks.ModelCheckpoint(
                     f'{self.checkpoint_path}.h5', monitor='weighted_dice', save_best_only=True, verbose=1),
-                keras.callbacks.EarlyStopping(
-                    monitor='loss', mode='min', patience=2, verbose=1),
+                # keras.callbacks.EarlyStopping(
+                #     monitor='weighted_dice', mode='min', patience=25, verbose=1),
                 MetricPrinterCallback(training=True),
                 TimerCallback(),
                 BasePrinterCallback(
