@@ -89,8 +89,8 @@ class MyModel():
         )
 
         self.model.stop_training = False
-        self.model.compile(optimizer=self.optimizer_fn,
-                           loss=self.loss_fn)
+        # self.model.compile(optimizer=self.optimizer_fn,
+        #                    loss=self.loss_fn)
 
         if verbose:
             self.model.summary()
@@ -198,13 +198,10 @@ class MyModel():
 
         self.save_results(logs)
 
-    def start_visualize(self, test_generator):
-        test_dataset = tf.data.Dataset.from_generator(
-            test_generator, (tf.float32, tf.float32))
-
+    def start_visualize(self):
         scan_mask = list()
 
-        for step, (images, labels) in enumerate(test_dataset):
+        for step, (images, labels) in enumerate(self.test_dataset):
             logits = self.model(images, training=False)
             preds = tf.dtypes.cast(logits > 0.5, tf.int8)
             scan_mask.append(preds.numpy().astype(np.int8))

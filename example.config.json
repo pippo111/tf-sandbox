@@ -1,0 +1,31 @@
+{
+    "setup": {
+        "dataset_dir": "/home/filip/Projekty/ML/datasets/processed/hippocampus_coronal_mindboggle_176x256_inn",
+        "struct": "hippocampus",
+        "epochs": 10,
+        "batch_size": 16,
+        "train_ds_limit": null,
+        "valid_ds_limit": null,
+        "input_shape": [
+            256,
+            176
+        ],
+        "augment": false
+    },
+    "models": [
+        {
+            "arch": "Unet",
+            "filters": 16,
+            "loss_fn": "boundary_dice",
+            "optimizer_fn": "RAdam",
+            "checkpoint": "hippocampus_boundary_dice_unet_radam"
+        },
+        {
+            "arch": "Unet",
+            "filters": 16,
+            "loss_fn": "boundary_gdl",
+            "optimizer_fn": "RAdam",
+            "checkpoint": "hippocampus_boundary_gdl_unet_radam"
+        }
+    ]
+}
