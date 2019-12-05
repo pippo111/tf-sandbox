@@ -78,10 +78,14 @@ class TimerCallback(keras.callbacks.Callback):
 
 
 class BasePrinterCallback(keras.callbacks.Callback):
-    def __init__(self, epochs=0, steps_per_train_epoch=0, steps_per_test_epoch=0):
+    def __init__(self, epochs=0):
         self.epochs = epochs
-        self.steps = steps_per_train_epoch
-        self.val_steps = steps_per_test_epoch
+        self.steps = 'unknown'
+        self.val_steps = 'unknown'
+
+        self.batch_counter = 0
+        self.val_batch_counter = 0
+        self.counted = False
 
     def on_train_begin(self):
         pass
@@ -93,18 +97,25 @@ class BasePrinterCallback(keras.callbacks.Callback):
         print(f'Epoch {epoch + 1} / {self.epochs}')
 
     def on_epoch_end(self, epoch, logs=None):
+        if not self.counted:
+            self.steps = self.batch_counter
+            self.val_steps = self.val_batch_counter
         print(f'--------------------------------------------------------------------------------------------------')
 
     def on_train_batch_begin(self, batch):
         print(f'Train batch {batch + 1} / {self.steps}', end='\r')
 
     def on_train_batch_end(self, batch):
+        if not self.counted:
+            self.batch_counter += 1
         print('                                       ', end='\r')
 
     def on_test_batch_begin(self, batch):
         print(f'Validation batch {batch + 1} / {self.val_steps}', end='\r')
 
     def on_test_batch_end(self, batch):
+        if not self.counted:
+            self.val_batch_counter += 1
         print('                                                ', end='\r')
 
 

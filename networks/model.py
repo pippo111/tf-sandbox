@@ -119,10 +119,7 @@ class MyModel():
                 #     monitor='weighted_dice', mode='min', patience=25, verbose=1),
                 MetricPrinterCallback(training=True),
                 TimerCallback(),
-                BasePrinterCallback(
-                    epochs,
-                    steps_per_train_epoch=len(list(self.train_dataset)),
-                    steps_per_test_epoch=len(list(self.valid_dataset)))
+                BasePrinterCallback(epochs)
             ])
 
         metrics_manager = MetricManager(
@@ -174,8 +171,7 @@ class MyModel():
             model=self.model,
             callbacks=[
                 MetricPrinterCallback(),
-                BasePrinterCallback(
-                    steps_per_test_epoch=len(list(self.valid_dataset)))
+                BasePrinterCallback()
             ])
 
         metrics_manager = MetricManager([
@@ -249,20 +245,14 @@ class MyModel():
         csv_file = f'{self.checkpoint_dir}/results.csv'
 
         formats = {
-            'name': None,
             'accuracy': '%',
-            'fp': None,
-            'fn': None,
             'precision': '%',
             'recall': '%',
-            'f1score': '%',
-            'binary': None,
-            'dice': None,
-            'weighted_dice': None
+            'f1score': '%'
         }
 
         for name in results:
-            if formats[name] == '%':
+            if name in formats and formats[name] == '%':
                 results[name] = f'{results[name] * 100:0.3f}%'
 
         output = pd.DataFrame([{'name': self.checkpoint, **results}])
