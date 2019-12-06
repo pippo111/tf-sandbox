@@ -140,3 +140,14 @@ class MetricPrinterCallback(keras.callbacks.Callback):
                 print(f'{key}: {value}')
 
         print('')
+
+
+class AlphaCounterCallback(keras.callbacks.Callback):
+    def __init__(self, epochs=1, alpha_on_start=1.0):
+        self.epochs = epochs
+        self.alpha_step = 1 / epochs
+        self.alpha = alpha_on_start
+
+    def on_epoch_begin(self, epoch, logs=None):
+        self.alpha = 1 - (epoch) * self.alpha_step
+        self.model._cb_alpha = self.alpha

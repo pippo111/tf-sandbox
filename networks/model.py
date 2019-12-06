@@ -10,7 +10,7 @@ from networks import network
 from networks import losses
 from networks import optimizers
 from networks import metrics
-from networks.callbacks import CallbackManager, TimerCallback, BasePrinterCallback, MetricPrinterCallback
+from networks.callbacks import CallbackManager, TimerCallback, BasePrinterCallback, MetricPrinterCallback, AlphaCounterCallback
 from networks.metrics import MetricManager
 from utils.image import cubify_scan, augment_xy
 from utils.vtk import render_mesh
@@ -89,8 +89,8 @@ class MyModel():
         )
 
         self.model.stop_training = False
-        # self.model.compile(optimizer=self.optimizer_fn,
-        #                    loss=self.loss_fn)
+        self.model.compile(optimizer=self.optimizer_fn,
+                           loss=self.loss_fn)
 
         if verbose:
             self.model.summary()
@@ -118,26 +118,25 @@ class MyModel():
                 # keras.callbacks.EarlyStopping(
                 #     monitor='weighted_dice', mode='min', patience=25, verbose=1),
                 MetricPrinterCallback(training=True),
+                AlphaCounterCallback(epochs=epochs),
                 TimerCallback(),
                 BasePrinterCallback(epochs)
             ])
 
         metrics = MetricManager(
-            ['dice', 'weighted_dice'], training=True)
+            ['weighted_dice'], training=True)
 
         callbacks.train_start()
 
         for epoch in range(epochs):
             callbacks.epoch_start(epoch)
 
-            alpha_step = 1 / epochs
-            alpha = 1 - epoch * alpha_step
-
             # train
             for step, (images, labels) in enumerate(self.train_dataset):
                 callbacks.train_batch_start(step)
 
-                loss, logits = self.train_step(images, labels, alpha)
+                loss, logits = self.train_step(
+                    images, labels, self.model._cb_alpha)
 
                 metrics.train_batch_end(labels, logits, loss)
                 callbacks.train_batch_end(step)
@@ -148,10 +147,7 @@ class MyModel():
 
                 logits = self.model(images, training=False)
 
-                if self.loss_name.startswith('boundary_'):
-                    loss = self.loss_fn(alpha)(labels, logits)
-                else:
-                    loss = self.loss_fn(labels, logits)
+                loss = self.loss_fn(labels, logits, self.model._cb_alpha)
 
                 metrics.test_batch_end(labels, logits, loss)
                 callbacks.test_batch_end(step)
@@ -194,7 +190,7 @@ class MyModel():
             callbacks.test_batch_end(step)
 
         logs = metrics.epoch_end()
-        callbacks.epoch_end(0, logs)
+        callbacks.epoch_end(1, logs)
 
         self.save_results(logs)
 
@@ -227,10 +223,7 @@ class MyModel():
         with tf.GradientTape() as tape:
             logits = self.model(images, training=True)
 
-            if self.loss_name.startswith('boundary_'):
-                loss = self.loss_fn(alpha)(labels, logits)
-            else:
-                loss = self.loss_fn(labels, logits)
+            loss = self.loss_fn(labels, logits, alpha)
 
         grads = tape.gradient(loss, self.model.trainable_variables)
         self.optimizer_fn.apply_gradients(
