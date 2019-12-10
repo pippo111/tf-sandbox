@@ -89,9 +89,8 @@ class MyModel():
         )
 
         self.model.stop_training = False
-        # for now we don't need to compile model as we use tensorflow 2.0 api
-        # self.model.compile(optimizer=self.optimizer_fn,
-        #                    loss=self.loss_fn)
+        self.model.compile(optimizer=self.optimizer_fn,
+                           loss=self.loss_fn)
 
         if verbose:
             self.model.summary()
