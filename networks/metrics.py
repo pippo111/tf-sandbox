@@ -1,7 +1,8 @@
 import tensorflow as tf
 import tensorflow_addons as tfa
 
-from networks import losses
+from networks.losses_functions.dice import dice_coef
+from networks.losses_functions.weighted_dice import weighted_dice_coef
 
 
 def get(name):
@@ -72,7 +73,7 @@ class DiceScore(tf.keras.metrics.Metric):
         self.avg_score = tf.keras.metrics.Mean('dice', dtype=tf.float32)
 
     def update_state(self, y_true, y_pred):
-        loss = losses.get('dice')(y_true, y_pred)
+        loss = dice_coef(y_true, y_pred)
         self.avg_score(loss)
 
     def result(self):
@@ -90,7 +91,7 @@ class WeightedDiceScore(tf.keras.metrics.Metric):
             'weighted_dice', dtype=tf.float32)
 
     def update_state(self, y_true, y_pred):
-        loss = losses.get('weighted_dice')(y_true, y_pred)
+        loss = weighted_dice_coef(y_true, y_pred)
         self.avg_score(loss)
 
     def result(self):
