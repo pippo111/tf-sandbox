@@ -89,8 +89,9 @@ class MyModel():
         )
 
         self.model.stop_training = False
-        self.model.compile(optimizer=self.optimizer_fn,
-                           loss=self.loss_fn)
+        # for now we don't need to compile model as we use tensorflow 2.0 api
+        # self.model.compile(optimizer=self.optimizer_fn,
+        #                    loss=self.loss_fn)
 
         if verbose:
             self.model.summary()
@@ -147,7 +148,12 @@ class MyModel():
 
                 logits = self.model(images, training=False)
 
-                loss = self.loss_fn(labels, logits, self.model._cb_alpha)
+                # not very clean, but don't have solution yet to pass extra params
+                if self.loss_name.startswith('boundary_'):
+                    loss = self.loss_fn(
+                        labels, logits, alpha=self.model._cb_alpha)
+                else:
+                    loss = self.loss_fn(labels, logits)
 
                 metrics.test_batch_end(labels, logits, loss)
                 callbacks.test_batch_end(step)
@@ -223,7 +229,12 @@ class MyModel():
         with tf.GradientTape() as tape:
             logits = self.model(images, training=True)
 
-            loss = self.loss_fn(labels, logits, alpha)
+            # not very clean, but don't have solution yet to pass extra params
+            if self.loss_name.startswith('boundary_'):
+                loss = self.loss_fn(
+                    labels, logits, alpha=self.model._cb_alpha)
+            else:
+                loss = self.loss_fn(labels, logits)
 
         grads = tape.gradient(loss, self.model.trainable_variables)
         self.optimizer_fn.apply_gradients(
