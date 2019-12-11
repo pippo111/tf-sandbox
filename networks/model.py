@@ -157,6 +157,11 @@ class MyModel():
             if self.model.stop_training:
                 break
 
+            # Save checkpoint at the very end of the training anyway
+            if epoch == (epochs - 1):
+                self.model.save(f'{self.checkpoint_path}_epoch_{epochs}.h5')
+
+
         callbacks.train_end()
 
     def start_evaluate(self):
