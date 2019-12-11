@@ -11,7 +11,7 @@ models = config['models']
 dataset_dir = setup['dataset_dir']
 
 train_loader = get_loader(dataset_dir, 'train',
-                          augment=setup['augment'], shuffle=True, limit=setup['train_ds_limit'])
+                          augment=False, shuffle=False, limit=setup['train_ds_limit'])
 valid_loader = get_loader(dataset_dir, 'valid',
                           limit=setup['valid_ds_limit'])
 

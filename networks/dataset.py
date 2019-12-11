@@ -27,8 +27,8 @@ class DataSequence(keras.utils.Sequence):
         batch_x = self.x[idx * self.batch_size:(idx + 1) * self.batch_size]
         batch_y = self.y[idx * self.batch_size:(idx + 1) * self.batch_size]
 
-        res = Parallel(n_jobs=-1, prefer="threads")(delayed(self.prepare)(x, y)
-                                                    for x, y in zip(batch_x, batch_y))
+        res = Parallel(n_jobs=1)(delayed(self.prepare)(x, y)
+                                 for x, y in zip(batch_x, batch_y))
 
         batch_x, batch_y = zip(*res)
         batch_x = np.array(batch_x).astype(np.float32)

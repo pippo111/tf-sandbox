@@ -88,9 +88,9 @@ class MyModel():
             input_shape=input_shape
         )
 
-        self.model.stop_training = False
-        self.model.compile(optimizer=self.optimizer_fn,
-                           loss=self.loss_fn)
+        # self.model.stop_training = False
+        # self.model.compile(optimizer=self.optimizer_fn,
+        #                    loss=self.loss_fn)
 
         if verbose:
             self.model.summary()
@@ -110,60 +110,61 @@ class MyModel():
             raise Exception(
                 'No data to process. Make sure you have setup data generators.')
 
-        callbacks = CallbackManager(
-            model=self.model,
-            callbacks=[
-                keras.callbacks.ModelCheckpoint(
-                    f'{self.checkpoint_path}.h5', monitor='weighted_dice', save_best_only=True, verbose=1),
-                # keras.callbacks.EarlyStopping(
-                #     monitor='weighted_dice', mode='min', patience=25, verbose=1),
-                MetricPrinterCallback(training=True),
-                AlphaCounterCallback(epochs=epochs),
-                TimerCallback(),
-                BasePrinterCallback(epochs)
-            ])
+        # callbacks = CallbackManager(
+        #     model=self.model,
+        #     callbacks=[
+        #         keras.callbacks.ModelCheckpoint(
+        #             f'{self.checkpoint_path}.h5', monitor='weighted_dice', save_best_only=True, verbose=1),
+        #         # keras.callbacks.EarlyStopping(
+        #         #     monitor='weighted_dice', mode='min', patience=25, verbose=1),
+        #         MetricPrinterCallback(training=True),
+        #         AlphaCounterCallback(epochs=epochs),
+        #         TimerCallback(),
+        #         BasePrinterCallback(epochs)
+        #     ])
 
-        metrics = MetricManager(
-            ['weighted_dice'], training=True)
+        # metrics = MetricManager(
+        #     ['weighted_dice'], training=True)
 
-        callbacks.train_start()
+        # callbacks.train_start()
 
         for epoch in range(epochs):
-            callbacks.epoch_start(epoch)
+            # callbacks.epoch_start(epoch)
+            print('epoch', epoch)
 
             # train
             for step, (images, labels) in enumerate(self.train_dataset):
-                callbacks.train_batch_start(step)
+                # callbacks.train_batch_start(step)
 
                 loss, logits = self.train_step(
-                    images, labels, self.model._cb_alpha)
+                    images, labels, 1.0)
 
-                metrics.train_batch_end(labels, logits, loss)
-                callbacks.train_batch_end(step)
+                # metrics.train_batch_end(labels, logits, loss)
+                # callbacks.train_batch_end(step)
 
             # validate
             for step, (images, labels) in enumerate(self.valid_dataset):
-                callbacks.test_batch_start(step)
+                # callbacks.test_batch_start(step)
 
                 logits = self.model(images, training=False)
 
                 # not very clean, but don't have solution yet to pass extra params
                 if self.loss_name.startswith('boundary_'):
                     loss = self.loss_fn(
-                        labels, logits, alpha=self.model._cb_alpha)
+                        labels, logits, alpha=1.0)
                 else:
                     loss = self.loss_fn(labels, logits)
 
-                metrics.test_batch_end(labels, logits, loss)
-                callbacks.test_batch_end(step)
+                # metrics.test_batch_end(labels, logits, loss)
+                # callbacks.test_batch_end(step)
 
-            logs = metrics.epoch_end()
-            callbacks.epoch_end(epoch, logs)
+            # logs = metrics.epoch_end()
+            # callbacks.epoch_end(epoch, logs)
 
             if self.model.stop_training:
                 break
 
-        callbacks.train_end()
+        # callbacks.train_end()
 
     def start_evaluate(self):
         threshold = 0.5
@@ -231,7 +232,7 @@ class MyModel():
             # not very clean, but don't have solution yet to pass extra params
             if self.loss_name.startswith('boundary_'):
                 loss = self.loss_fn(
-                    labels, logits, alpha=self.model._cb_alpha)
+                    labels, logits, alpha=1.0)
             else:
                 loss = self.loss_fn(labels, logits)
 
