@@ -89,8 +89,8 @@ class MyModel():
         )
 
         self.model.stop_training = False
-        self.model.compile(optimizer=self.optimizer_fn,
-                           loss=self.loss_fn)
+        # self.model.compile(optimizer=self.optimizer_fn,
+        #                    loss=self.loss_fn)
 
         if verbose:
             self.model.summary()
