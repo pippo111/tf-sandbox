@@ -145,14 +145,8 @@ class MyModel():
             for step, (images, labels) in enumerate(self.valid_dataset):
                 callbacks.test_batch_start(step)
 
-                logits = self.model(images, training=False)
-
-                # not very clean, but don't have solution yet to pass extra params
-                if self.loss_name.startswith('boundary_'):
-                    loss = self.loss_fn(
-                        labels, logits, alpha=self.model._cb_alpha)
-                else:
-                    loss = self.loss_fn(labels, logits)
+                loss, logits = self.valid_step(
+                    images, labels, self.model._cb_alpha)
 
                 metrics.test_batch_end(labels, logits, loss)
                 callbacks.test_batch_end(step)
@@ -238,6 +232,17 @@ class MyModel():
         grads = tape.gradient(loss, self.model.trainable_variables)
         self.optimizer_fn.apply_gradients(
             zip(grads, self.model.trainable_variables))
+
+        return loss, logits
+
+    @tf.function
+    def valid_step(self, images, labels, alpha=None):
+        logits = self.model(images, training=False)
+
+        if self.loss_name.startswith('boundary_'):
+            loss = self.loss_fn(labels, logits, alpha=alpha)
+        else:
+            loss = self.loss_fn(labels, logits)
 
         return loss, logits
 
