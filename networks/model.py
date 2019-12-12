@@ -114,7 +114,7 @@ class MyModel():
             model=self.model,
             callbacks=[
                 keras.callbacks.ModelCheckpoint(
-                    f'{self.checkpoint_path}.h5', monitor='weighted_dice', mode='max', save_best_only=True, verbose=1),
+                    f'{self.checkpoint_path}.h5', monitor='val_loss', mode='min', save_best_only=True, verbose=1),
                 # keras.callbacks.EarlyStopping(
                 #     monitor='weighted_dice', mode='min', patience=25, verbose=1),
                 MetricPrinterCallback(training=True),
@@ -157,9 +157,9 @@ class MyModel():
             if self.model.stop_training:
                 break
 
-            # Save checkpoint at the very end of the training anyway
-            if epoch == (epochs - 1):
-                self.model.save(f'{self.checkpoint_path}_epoch_{epochs}.h5')
+            # Save checkpoint every 10 epoch after 50 anyway
+            if (epoch+1) > 50 and (epoch+1) % 10 == 0:
+                self.model.save(f'{self.checkpoint_path}_epoch_{epoch+1}.h5')
 
 
         callbacks.train_end()
