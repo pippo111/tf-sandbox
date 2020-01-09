@@ -161,12 +161,9 @@ class MyModel():
             if (epoch+1) > 50 and (epoch+1) % 10 == 0:
                 self.model.save(f'{self.checkpoint_path}_epoch_{epoch+1}.h5')
 
-
         callbacks.train_end()
 
     def start_evaluate(self):
-        threshold = 0.5
-
         callbacks = CallbackManager(
             model=self.model,
             callbacks=[
@@ -201,7 +198,7 @@ class MyModel():
     def start_visualize(self):
         scan_mask = list()
 
-        for step, (images, labels) in enumerate(self.test_dataset):
+        for (images, _) in self.test_dataset:
             logits = self.model(images, training=False)
             preds = tf.dtypes.cast(logits > 0.5, tf.int8)
             scan_mask.append(preds.numpy().astype(np.int8))
