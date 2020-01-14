@@ -10,7 +10,7 @@ from networks import network
 from networks import losses
 from networks import optimizers
 from networks import metrics
-from networks.callbacks import CallbackManager, TimerCallback, BasePrinterCallback, MetricPrinterCallback, AlphaCounterCallback
+from networks.callbacks import CallbackManager, TimerCallback, BasePrinterCallback, MetricPrinterCallback, AlphaCounterCallback, NeptuneMonitor
 from networks.metrics import MetricManager
 from utils.image import cubify_scan, augment_xy
 from utils.vtk import render_mesh
@@ -78,6 +78,12 @@ class MyModel():
         Optimizer is taken from optimizer library
         """
 
+        self.params = {
+            'arch': arch,
+            'loss_fn': loss_fn,
+            'n_filters': n_filters
+        }
+
         self.optimizer_fn = optimizers.get(optimizer_fn)
         self.loss_name = loss_fn
         self.loss_fn = losses.get(loss_fn)
@@ -120,7 +126,8 @@ class MyModel():
                 MetricPrinterCallback(training=True),
                 AlphaCounterCallback(epochs=epochs),
                 TimerCallback(),
-                BasePrinterCallback(epochs)
+                BasePrinterCallback(epochs),
+                NeptuneMonitor(params=self.params)
             ])
 
         metrics = MetricManager(

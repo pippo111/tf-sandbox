@@ -3,6 +3,7 @@ import datetime
 from datetime import timedelta
 import tensorflow as tf
 from tensorflow import keras
+import neptune
 
 
 class CallbackManager():
@@ -151,3 +152,27 @@ class AlphaCounterCallback(keras.callbacks.Callback):
     def on_epoch_begin(self, epoch, logs=None):
         self.alpha = 1 - (epoch) * self.alpha_step
         self.model._cb_alpha = self.alpha
+
+
+class NeptuneMonitor(keras.callbacks.Callback):
+    def __init__(self, params):
+        super().__init__()
+        self.params = params
+
+    def on_train_begin(self):
+        neptune.init('inn/Hippocampus',
+                     api_token='eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vdWkubmVwdHVuZS5tbCIsImFwaV91cmwiOiJodHRwczovL3VpLm5lcHR1bmUuYWkiLCJhcGlfa2V5IjoiNzcyMjE2ZWQtYjA5OS00NmNlLTk4ODAtMTdhNGVmODJlOTQ2In0=')
+
+        self.exp = neptune.create_experiment(params=self.params)
+        self.exp.append_tag('hippocampus', 'coronal', 'paperspace')
+
+    def on_train_end(self):
+        neptune.stop()
+
+    def on_epoch_end(self, epoch, logs=None):
+        for key, value in logs.items():
+            print('neptune', key, value)
+            self.exp.log_metric(log_name=key, x=epoch,
+                                y=value, timestamp=time.time())
+            self.exp.log_text(log_name=key, x=str(
+                value), timestamp=time.time())
