@@ -1,6 +1,6 @@
 import json
 
-from networks.dataset import get_loader
+from networks.dataset import get_loader, calculate_hash
 from networks.model import MyModel
 
 with open('config.json', 'r') as cfg_file:
@@ -14,6 +14,9 @@ train_loader = get_loader(dataset_dir, 'train',
                           augment=setup['augment'], shuffle=True, limit=setup['train_ds_limit'])
 valid_loader = get_loader(dataset_dir, 'valid',
                           limit=setup['valid_ds_limit'])
+
+calculate_hash(dataset_dir, 'train', verbose=1)
+calculate_hash(dataset_dir, 'valid', verbose=1)
 
 for model in models:
     my_model = MyModel()
