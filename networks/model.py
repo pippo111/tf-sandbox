@@ -171,13 +171,15 @@ class MyModel():
 
         callbacks.train_end()
 
-    def start_evaluate(self):
+    def start_evaluate(self, custom_callbacks=[]):
+        default_callbacks = [
+            MetricPrinterCallback(),
+            BasePrinterCallback()
+        ]
+
         callbacks = CallbackManager(
             model=self.model,
-            callbacks=[
-                MetricPrinterCallback(),
-                BasePrinterCallback()
-            ])
+            callbacks=default_callbacks + custom_callbacks)
 
         metrics = MetricManager([
             'accuracy',
@@ -225,7 +227,7 @@ class MyModel():
                 'color': 'Green',
                 'opacity': 1.0
             }
-        ], 256)
+        ], 256, saveAs='testtest')
 
     @tf.function
     def train_step(self, images, labels, alpha=None):
