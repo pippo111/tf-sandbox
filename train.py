@@ -1,13 +1,20 @@
 import json
+import os
 
 from networks.dataset import get_loader, calculate_hash
 from networks.model import MyModel
+from networks.callbacks import NeptuneMonitor
 
 with open('config.json', 'r') as cfg_file:
     config = json.load(cfg_file)
 
+# Neptune.ai setup
+neptune = config['neptune']
+os.environ['NEPTUNE_API_TOKEN'] = neptune['api_key']
+
 setup = config['setup']
 models = config['models']
+
 dataset_dir = setup['dataset_dir']
 
 train_loader = get_loader(dataset_dir, 'train',
@@ -33,7 +40,8 @@ for model in models:
                           input_shape=tuple(setup['input_shape']),
                           verbose=1)
 
-    my_model.start_train(epochs=setup['epochs'])
+    my_model.start_train(epochs=setup['epochs'], custom_callbacks=[
+                         NeptuneMonitor(project_name=neptune['project_name'], params={})])
 
     my_model.load_model(verbose=1)
 

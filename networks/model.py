@@ -10,7 +10,7 @@ from networks import network
 from networks import losses
 from networks import optimizers
 from networks import metrics
-from networks.callbacks import CallbackManager, TimerCallback, BasePrinterCallback, MetricPrinterCallback, AlphaCounterCallback, NeptuneMonitor
+from networks.callbacks import CallbackManager, TimerCallback, BasePrinterCallback, MetricPrinterCallback, AlphaCounterCallback
 from networks.metrics import MetricManager
 from utils.image import cubify_scan, augment_xy
 from utils.vtk import render_mesh
@@ -109,26 +109,27 @@ class MyModel():
         if verbose:
             self.model.summary()
 
-    def start_train(self, epochs):
+    def start_train(self, epochs, custom_callbacks=[]):
         """Starts training process
         """
         if not self.train_dataset:
             raise Exception(
                 'No data to process. Make sure you have setup data generators.')
 
+        default_callbacks = [
+            keras.callbacks.ModelCheckpoint(
+                f'{self.checkpoint_path}.h5', monitor='val_loss', mode='min', save_best_only=True, verbose=1),
+            # keras.callbacks.EarlyStopping(
+            #     monitor='weighted_dice', mode='min', patience=25, verbose=1),
+            MetricPrinterCallback(training=True),
+            AlphaCounterCallback(epochs=epochs),
+            TimerCallback(),
+            BasePrinterCallback(epochs)
+        ]
+
         callbacks = CallbackManager(
             model=self.model,
-            callbacks=[
-                keras.callbacks.ModelCheckpoint(
-                    f'{self.checkpoint_path}.h5', monitor='val_loss', mode='min', save_best_only=True, verbose=1),
-                # keras.callbacks.EarlyStopping(
-                #     monitor='weighted_dice', mode='min', patience=25, verbose=1),
-                MetricPrinterCallback(training=True),
-                AlphaCounterCallback(epochs=epochs),
-                TimerCallback(),
-                BasePrinterCallback(epochs),
-                NeptuneMonitor(params=self.params)
-            ])
+            callbacks=default_callbacks + custom_callbacks)
 
         metrics = MetricManager(
             ['weighted_dice'], training=True)

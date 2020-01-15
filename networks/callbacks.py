@@ -155,14 +155,13 @@ class AlphaCounterCallback(keras.callbacks.Callback):
 
 
 class NeptuneMonitor(keras.callbacks.Callback):
-    def __init__(self, params):
+    def __init__(self, project_name, params):
         super().__init__()
         self.params = params
 
-    def on_train_begin(self):
-        neptune.init('inn/Hippocampus',
-                     api_token='eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vdWkubmVwdHVuZS5tbCIsImFwaV91cmwiOiJodHRwczovL3VpLm5lcHR1bmUuYWkiLCJhcGlfa2V5IjoiNzcyMjE2ZWQtYjA5OS00NmNlLTk4ODAtMTdhNGVmODJlOTQ2In0=')
+        neptune.init(project_name)
 
+    def on_train_begin(self):
         self.exp = neptune.create_experiment(params=self.params)
         self.exp.append_tag('hippocampus', 'coronal', 'paperspace')
 
