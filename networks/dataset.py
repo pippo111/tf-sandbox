@@ -1,5 +1,4 @@
 import glob
-import hashlib
 import os
 import numpy as np
 import random
@@ -69,26 +68,3 @@ def get_loader(dataset_dir, dataset_type, batch_size=16, shuffle=False, augment=
         x_files, y_files, batch_size, augment, shuffle)
 
     return lambda: data_sequence
-
-
-def calculate_hash(dataset_dir, dataset_type, file_type='png', verbose=0):
-    if verbose:
-        print(f'Calculating dataset {dataset_type} hash...')
-
-    filenames = sorted(
-        glob.glob(os.path.join(dataset_dir, dataset_type,
-                               '**', f'*.{file_type}'), recursive=True))
-
-    hash_md5 = hashlib.md5()
-
-    for filename in filenames:
-        with open(filename, "rb") as f:
-            for chunk in iter(lambda: f.read(2 ** 20), b""):
-                hash_md5.update(chunk)
-
-    ds_hash = hash_md5.hexdigest()
-
-    if verbose:
-        print(f'Calculated hash: {ds_hash}')
-
-    return ds_hash
