@@ -66,7 +66,7 @@ class MyModel():
 
     def create_model(self,
                      arch='Unet',
-                     optimizer_fn='RAdam',
+                     optimizer_fn='Adam',
                      loss_fn='dice',
                      n_filters=16,
                      input_shape=(256, 176),
@@ -165,10 +165,6 @@ class MyModel():
             if self.model.stop_training:
                 break
 
-            # Save checkpoint every 10 epoch after 50 anyway
-            if (epoch+1) > 50 and (epoch+1) % 10 == 0:
-                self.model.save(f'{self.checkpoint_path}_epoch_{epoch+1}.h5')
-
         callbacks.train_end()
 
     def start_evaluate(self, custom_callbacks=[]):
@@ -203,7 +199,7 @@ class MyModel():
         logs = metrics.epoch_end()
         callbacks.epoch_end(1, logs)
 
-        self.save_results(logs)
+        return logs
 
     def start_visualize(self):
         scan_mask = list()
