@@ -20,15 +20,14 @@ train_loader = get_loader(dataset_dir, 'train',
                           limit=setup['train_ds_limit'])
 valid_loader = get_loader(dataset_dir, 'valid',
                           limit=setup['valid_ds_limit'])
-test_loader = get_loader(dataset_dir, 'test')
+
+train_hash = calculate_hash(dataset_dir, 'train', verbose=1)
+valid_hash = calculate_hash(dataset_dir, 'valid', verbose=1)
 
 # Setup Neptune.ai
 os.environ['NEPTUNE_API_TOKEN'] = config['neptune']['api_key']
 neptune.init(config['neptune']['project_name'])
 tags = ['hippocampus', 'coronal']
-
-train_hash = calculate_hash(dataset_dir, 'train', verbose=1)
-valid_hash = calculate_hash(dataset_dir, 'valid', verbose=1)
 
 for model in models:
     params = {
