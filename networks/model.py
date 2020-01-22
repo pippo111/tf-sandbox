@@ -225,7 +225,7 @@ class MyModel():
             }
         ], 256, saveAs='testtest')
 
-    @tf.function
+    # @tf.function
     def train_step(self, images, labels, alpha=None):
         with tf.GradientTape() as tape:
             logits = self.model(images, training=True)
@@ -243,7 +243,7 @@ class MyModel():
 
         return loss, logits
 
-    @tf.function
+    # @tf.function
     def valid_step(self, images, labels, alpha=None):
         logits = self.model(images, training=False)
 
