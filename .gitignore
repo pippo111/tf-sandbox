@@ -1,6 +1,10 @@
 # Jupyter notebooks
 /notebooks/*
 !/notebooks/.gitkeep
+
+# MLflow
+/mlruns
+
 # Output logs
 /output/logs/*
 !/output/logs/.gitkeep
