@@ -25,7 +25,7 @@ valid_loader = get_loader(dataset_dir, 'valid',
 train_hash = calculate_hash(dataset_dir, 'train', verbose=1)
 valid_hash = calculate_hash(dataset_dir, 'valid', verbose=1)
 
-mlflow.set_experiment(config['neptune']['project_name'])
+mlflow.set_experiment(config['mlflow']['project_name'])
 mlflow.start_run()
 
 params = {
