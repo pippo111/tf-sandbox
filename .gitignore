@@ -18,6 +18,7 @@
 /config.py
 /config.json
 /neptune.config.json
+/mlflow.config.json
 
 # IDE config files
 /.vscode/*
