@@ -1,0 +1,32 @@
+{
+    "neptune": {
+        "project_name": "inn/Hippocampus",
+        "api_token": "xxx"
+    },
+    "setup": {
+        "dataset_dir": "/home/paperspace/datasets/hippocampus_coronal_mindboggle_176x256_inn",
+        "checkpoint_dir": "output/models",
+        "struct": "hippocampus",
+        "epochs": 100,
+        "batch_size": 16,
+        "train_ds_limit": null,
+        "valid_ds_limit": null,
+        "input_shape": [
+            256,
+            176
+        ],
+        "augment": true,
+        "seed": 5
+    },
+    "model": {
+        "arch": "Unet",
+        "filters": 16,
+        "loss_fn": "boundary_gdl",
+        "optimizer_fn": "RAdam",
+        "checkpoint": "hippocampus_coronal_boundary_gdl_unet_aug_radam"
+    },
+    "tags": [
+        "hippocampus",
+        "coronal"
+    ]
+}

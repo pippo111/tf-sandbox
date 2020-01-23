@@ -11,10 +11,13 @@
 # Output models
 /output/models/*
 !/output/models/.gitkeep
+# MLflow
+/mlruns
 
 # Custom config file
 /config.py
 /config.json
+/neptune.config.json
 
 # IDE config files
 /.vscode/*
