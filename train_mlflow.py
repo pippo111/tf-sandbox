@@ -6,7 +6,7 @@ from networks.dataset import get_loader, calculate_hash
 from networks.model import MyModel
 from utils.mlflow import MLflowMonitor
 
-with open('neptune.config.json', 'r') as cfg_file:
+with open('mlflow.config.json', 'r') as cfg_file:
     config = json.load(cfg_file)
 
 setup = config['setup']
