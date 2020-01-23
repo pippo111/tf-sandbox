@@ -15,6 +15,9 @@ model = config['model']
 tags = config['tags'] or []
 dataset_dir = setup['dataset_dir']
 
+os.environ['NEPTUNE_API_TOKEN'] = config['neptune']['api_token']
+os.environ['NEPTUNE_PROJECT'] = config['neptune']['project_name']
+
 train_loader = get_loader(dataset_dir, 'train',
                           augment=setup['augment'],
                           shuffle=True,
